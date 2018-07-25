@@ -1,0 +1,3 @@
+[submodule "proveth"]
+	path = proveth
+	url = https://github.com/lorenzb/proveth.git
