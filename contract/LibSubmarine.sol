@@ -3,7 +3,7 @@ pragma solidity ^0.4.24;
 import "./SafeMath.sol";
 import "./proveth/ProvethVerifier.sol";
 
-contract LibSubmarine is MerklePatriciaVerifier {
+contract LibSubmarine is ProvethVerifier {
 
     using SafeMath for uint256;
 
@@ -124,7 +124,7 @@ contract LibSubmarine is MerklePatriciaVerifier {
         uint256 nonce;
         uint256 gasprice;
         uint256 startgas;
-        address to;
+        bytes to;
         uint256 value;
         bytes data;
         uint256 v;
@@ -167,7 +167,7 @@ contract LibSubmarine is MerklePatriciaVerifier {
                 // and proof.nonce == 0
           address proxy = ecrecover(unsignedTx.sigHash, vee, keccak256(abi.encodePacked(_sessionId, byte(1))), keccak256(abi.encodePacked(_sessionId, byte(0)))); //ecrecover(bytes32 hash, uint8 v, bytes32 r, bytes32 s) returns (address)
           if (!(
-              mpProof.to == proxy &&
+              keccak256(mpProof.to) == keccak256(proxy) &&
               mpProof.value > sessions[_sessionId].unlockAmount &&
               mpProof.data.length == 0 &&
               mpProof.nonce == 0
