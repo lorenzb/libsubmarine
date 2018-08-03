@@ -44,10 +44,10 @@ class TestLibSubmarine(unittest.TestCase):
             self.chain,
             {'LibSubmarine.sol': {'urls': ['contract/LibSubmarine.sol']},
              'SafeMath.sol': {'urls': ['contract/SafeMath.sol']},
-             'MerklePatriciaVerifier.sol': {'urls': ['contract/MerklePatriciaVerifier.sol']},
-             'RLP.sol': {'urls': ['contract/RLP.sol']}
+             'proveth/ProvethVerifier.sol': {'urls': ['contract/proveth/ProvethVerifier.sol']},
+             'proveth/RLP.sol': {'urls': ['contract/proveth/RLP.sol']}
             },
-            os.path.abspath(os.path.join(os.getcwd(), 'contract')),
+            os.path.abspath(os.getcwd()),
             'LibSubmarine.sol',
             'LibSubmarine',
             10**7,

@@ -1,0 +1,5 @@
+# Set the default behavior, in case people don't have core.autocrlf set.
+* text=auto
+# force code files to not be crlf'd
+*.sol text linguist-language=Solidity eol=lf
+*.py text eol=lf 
