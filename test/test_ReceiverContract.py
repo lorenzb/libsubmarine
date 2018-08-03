@@ -1,30 +1,29 @@
-import collections
+import logging
 import os
-import unittest
-
-from test_utils import rec_hex, rec_bin, deploy_solidity_contract_with_args
-
-from ethereum import utils
-from ethereum import config
-from ethereum import transactions
-from ethereum.tools import tester as t
-from ethereum.utils import mk_contract_address, checksum_encode, normalize_address, sha3_256
-
 import rlp
-
-import pprint
-
 import sys
+import unittest
+from ethereum import config, transactions
+from ethereum.tools import tester as t
+from ethereum.utils import checksum_encode, normalize_address, sha3_256
+from test_utils import rec_hex, rec_bin, deploy_solidity_contract_with_args
 
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'generate_commitment'))
 import generate_submarine_commit
+
+root_repo_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '../'))
 
 REVEAL_DEPOSIT = 1000
 CHALLENGE_PERIOD_LENGTH = 10
 UNLOCK_AMOUNT = 1337000000000000000
 OURGASLIMIT = 3712394
-OURGASPRICE = 10**6
+OURGASPRICE = 10 ** 6
 extraTransactionFees = 100000000000000000
+
+log = logging.getLogger('TestLibSubmarine')
+level = logging.getLevelName('INFO')
+log.setLevel(level)
+logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
 
 
 class TestLibSubmarine(unittest.TestCase):
@@ -36,21 +35,23 @@ class TestLibSubmarine(unittest.TestCase):
         return self.assertEqual(checksum_encode(args[0]), checksum_encode(args[1]), *args[2:], **kwargs)
 
     def setUp(self):
-        config.config_metropolis['BLOCK_GAS_LIMIT'] = 2**60
+        config.config_metropolis['BLOCK_GAS_LIMIT'] = 2 ** 60
         self.chain = t.Chain(env=config.Env(config=config.config_metropolis))
         self.chain.mine()
+        contract_dir = os.path.abspath(os.path.join(root_repo_dir, 'contract/'))
+        os.chdir(root_repo_dir)
 
         self.verifier_contract = deploy_solidity_contract_with_args(
             self.chain,
-            {'LibSubmarine.sol': {'urls': ['contract/LibSubmarine.sol']},
-             'SafeMath.sol': {'urls': ['contract/SafeMath.sol']},
-             'proveth/ProvethVerifier.sol': {'urls': ['contract/proveth/ProvethVerifier.sol']},
-             'proveth/RLP.sol': {'urls': ['contract/proveth/RLP.sol']}
-            },
-            os.path.abspath(os.getcwd()),
+            {'LibSubmarine.sol': {'urls': [os.path.join(contract_dir, 'LibSubmarine.sol')]},
+             'SafeMath.sol': {'urls': [os.path.join(contract_dir, 'SafeMath.sol')]},
+             'proveth/ProvethVerifier.sol': {'urls': [os.path.join(contract_dir, 'proveth/ProvethVerifier.sol')]},
+             'proveth/RLP.sol': {'urls': [os.path.join(contract_dir, 'proveth/RLP.sol')]}
+             },
+            root_repo_dir,
             'LibSubmarine.sol',
             'LibSubmarine',
-            10**7,
+            10 ** 7,
             args=[REVEAL_DEPOSIT, CHALLENGE_PERIOD_LENGTH]
         )
 
@@ -59,8 +60,9 @@ class TestLibSubmarine(unittest.TestCase):
         DAPP_ADDRESS = t.a2
         DAPP_PRIVATE_KEY = t.k2
 
-        print("Contract Address:", rec_hex(self.verifier_contract.address))
-        print("A1 has {} and has address {}".format(self.chain.head_state.get_balance(rec_hex(t.a1)), rec_hex(t.a1)))
+        log.info("Contract Address:", rec_hex(self.verifier_contract.address))
+        log.info(
+            "A1 has {} and has address {}".format(self.chain.head_state.get_balance(rec_hex(t.a1)), rec_hex(t.a1)))
 
         addressB, commit, witness, tx_hex = generate_submarine_commit.generateAddressBexport(
             normalize_address(rec_hex(t.a1)),
@@ -70,32 +72,34 @@ class TestLibSubmarine(unittest.TestCase):
             OURGASPRICE,
             OURGASLIMIT
         )
-        print("Address of commit: {}".format(addressB))
+        log.info("Address of commit: {}".format(addressB))
         commit_tx_object = transactions.Transaction(
             0, OURGASPRICE, OURGASLIMIT, rec_bin(addressB), (UNLOCK_AMOUNT + extraTransactionFees), b'').sign(t.k1)
-        print("New transaction hash")
-        print(rec_hex(commit_tx_object.hash))
+        log.info("New transaction hash")
+        log.info(rec_hex(commit_tx_object.hash))
         self.chain.mine(3)
         self.chain.direct_tx(commit_tx_object)
         self.chain.mine(3)
         commitBlockNumber, commitBlockIndex = self.chain.chain.get_tx_position(commit_tx_object)
-        print("tx block number {} and tx block index {}".format( commitBlockNumber, commitBlockIndex))
-        #tx_reciept = self.chain.tx(t.k1, rec_bin(addressB), (UNLOCK_AMOUNT + extraTransactionFees), b'', 21000, 10**6)
-        print("A1 has {} and has address {}".format(self.chain.head_state.get_balance(rec_hex(t.a1)), rec_hex(t.a1)))
-        print("B has {} and has address {}".format(self.chain.head_state.get_balance(addressB), addressB))
+        log.info("tx block number {} and tx block index {}".format(commitBlockNumber, commitBlockIndex))
+        # tx_reciept = self.chain.tx(t.k1, rec_bin(addressB), (UNLOCK_AMOUNT + extraTransactionFees), b'', 21000, 10**6)
+        log.info(
+            "A1 has {} and has address {}".format(self.chain.head_state.get_balance(rec_hex(t.a1)), rec_hex(t.a1)))
+        log.info("B has {} and has address {}".format(self.chain.head_state.get_balance(addressB), addressB))
         self.assertEqual(1437000000000000000, self.chain.head_state.get_balance(addressB))
         self.assertEqual(999998562999979000000000, self.chain.head_state.get_balance(rec_hex(t.a1)))
 
-        assert(isinstance(witness, str))
+        assert (isinstance(witness, str))
         self.verifier_contract.reveal(
-            commitBlockNumber, commitBlockIndex, DAPP_ADDRESS, UNLOCK_AMOUNT, b'',  rec_bin(witness), OURGASPRICE, OURGASLIMIT,
+            commitBlockNumber, commitBlockIndex, DAPP_ADDRESS, UNLOCK_AMOUNT, b'', rec_bin(witness), OURGASPRICE,
+            OURGASLIMIT,
             sender=t.k1,
             to=self.verifier_contract.address,
             value=1009,
             gasprice=OURGASPRICE,
             startgas=OURGASLIMIT)
         revealTestSession = self.verifier_contract.getSession(rec_bin(commit))
-        print(revealTestSession)
+        log.info("Contract Session: {}".format(str(revealTestSession)))
         # see getSession function return values for reference
         self.assertEqual(False, revealTestSession[0])
         self.assertEqual(True, revealTestSession[1])
@@ -112,27 +116,27 @@ class TestLibSubmarine(unittest.TestCase):
         isfine, unlockAmount, unlockdata = self.verifier_contract.isFinalizable(rec_bin(commit))
         self.assertFalse(isfine)
         unlock_tx_info = rlp.decode(rec_bin(tx_hex))
-        print(rec_hex(unlock_tx_info))
+        log.info(rec_hex(unlock_tx_info))
 
         unlock_tx_object = transactions.Transaction(
-            int.from_bytes(unlock_tx_info[0], byteorder="big"), #  nonce;
-            int.from_bytes(unlock_tx_info[1], byteorder="big"), # gasprice
-            int.from_bytes(unlock_tx_info[2], byteorder="big"), # startgas
-            unlock_tx_info[3], # to addr
-            int.from_bytes(unlock_tx_info[4], byteorder="big"), # value
-            unlock_tx_info[5], # data
-            int.from_bytes(unlock_tx_info[6], byteorder="big"), # v
-            int.from_bytes(unlock_tx_info[7], byteorder="big"), # r
-            int.from_bytes(unlock_tx_info[8], byteorder="big") # s
+            int.from_bytes(unlock_tx_info[0], byteorder="big"),  # nonce;
+            int.from_bytes(unlock_tx_info[1], byteorder="big"),  # gasprice
+            int.from_bytes(unlock_tx_info[2], byteorder="big"),  # startgas
+            unlock_tx_info[3],  # to addr
+            int.from_bytes(unlock_tx_info[4], byteorder="big"),  # value
+            unlock_tx_info[5],  # data
+            int.from_bytes(unlock_tx_info[6], byteorder="big"),  # v
+            int.from_bytes(unlock_tx_info[7], byteorder="big"),  # r
+            int.from_bytes(unlock_tx_info[8], byteorder="big")  # s
         )
-        print("Unlock hash: ")
-        print(rec_hex(unlock_tx_object.hash))
+        log.info("Unlock hash: ")
+        log.info(rec_hex(unlock_tx_object.hash))
 
         self.chain.direct_tx(unlock_tx_object)
         self.chain.mine(3)
 
         unlockTestSession = self.verifier_contract.getSession(rec_bin(commit))
-        print(unlockTestSession)
+        log.info(unlockTestSession)
         self.assertEqual(True, unlockTestSession[0])
         self.assertEqual(True, unlockTestSession[1])
         self.assertEqual(False, unlockTestSession[2])
@@ -145,7 +149,7 @@ class TestLibSubmarine(unittest.TestCase):
         self.assertEqual(b'', unlockTestSession[7])
         self.assertEqual(rec_hex(DAPP_ADDRESS), unlockTestSession[8])
         unlockBlockNumber, unlockBlockIndex = self.chain.chain.get_tx_position(unlock_tx_object)
-        print("tx block number {} and tx block index {}".format( unlockBlockNumber, unlockBlockIndex))
+        log.info("tx block number {} and tx block index {}".format(unlockBlockNumber, unlockBlockIndex))
         self.chain.mine(CHALLENGE_PERIOD_LENGTH)
 
         isfine, unlockAmount, unlockData = self.verifier_contract.isFinalizable(rec_bin(commit))
@@ -153,7 +157,9 @@ class TestLibSubmarine(unittest.TestCase):
         self.assertEqual(UNLOCK_AMOUNT, unlockAmount)
         self.assertEqual(b'', unlockData)
 
-        print("DAPP Address has {} and has address {}".format(self.chain.head_state.get_balance(rec_hex(DAPP_ADDRESS)), rec_hex(DAPP_ADDRESS)))
+        log.info(
+            "DAPP Address has {} and has address {}".format(self.chain.head_state.get_balance(rec_hex(DAPP_ADDRESS)),
+                                                            rec_hex(DAPP_ADDRESS)))
         unlockAmount, unlockData = self.verifier_contract.finalize(
             rec_bin(commit),
             sender=DAPP_PRIVATE_KEY,
@@ -165,16 +171,16 @@ class TestLibSubmarine(unittest.TestCase):
         self.chain.mine(1)
         self.assertEqual(UNLOCK_AMOUNT, unlockAmount)
         self.assertEqual(b'', unlockData)
-        print("DAPP Address has {} and has address {}".format(self.chain.head_state.get_balance(rec_hex(DAPP_ADDRESS)), rec_hex(DAPP_ADDRESS)))
+        log.info(
+            "DAPP Address has {} and has address {}".format(self.chain.head_state.get_balance(rec_hex(DAPP_ADDRESS)),
+                                                            rec_hex(DAPP_ADDRESS)))
         print()
         # getting gas costs
-        #unlockBlockNumber = self.chain.chain.get_block_by_number(21)
-        #pprint.pprint(unlockBlockNumber.__dict__, width=1)
-        #pprint.pprint(unlockBlockNumber._transactions[0].intrinsic_gas_used, width=1)
+        # unlockBlockNumber = self.chain.chain.get_block_by_number(21)
+        # pprint.pprint(unlockBlockNumber.__dict__, width=1)
+        # pprint.pprint(unlockBlockNumber._transactions[0].intrinsic_gas_used, width=1)
 
     def test_dishonest_party(self):
-
-
         ADDR_A = rec_hex(t.a1)
         PKEY_A = t.k1
         ADDR_B = rec_hex(t.a2)
@@ -187,17 +193,18 @@ class TestLibSubmarine(unittest.TestCase):
         self.chain.mine(1)
         witness = "0x03"
         fakecommitBlockNumber, fakecommitBlockIndex = self.chain.chain.get_tx_position(fake_tx_commit_object)
-        print("tx block number {} and tx block index {}".format( fakecommitBlockNumber, fakecommitBlockIndex))
+        log.info("tx block number {} and tx block index {}".format(fakecommitBlockNumber, fakecommitBlockIndex))
 
-        def _listener(log):
-            print('LOG:', )
-            print('LOG:', log)
-            print(rec_hex(log['data']))
+        def _listener(llog):
+            log.info('LOG:', )
+            log.info('LOG:', llog)
+            log.info(rec_hex(llog['data']))
+
         self.chain.head_state.log_listeners.append(_listener)
 
-
         self.verifier_contract.reveal(
-            fakecommitBlockNumber, fakecommitBlockIndex, DAPP_ADDRESS, UNLOCK_AMOUNT, b'',  rec_bin(witness), OURGASPRICE, OURGASLIMIT,
+            fakecommitBlockNumber, fakecommitBlockIndex, DAPP_ADDRESS, UNLOCK_AMOUNT, b'', rec_bin(witness),
+            OURGASPRICE, OURGASLIMIT,
             sender=PKEY_A,
             to=self.verifier_contract.address,
             value=1009,
@@ -206,19 +213,20 @@ class TestLibSubmarine(unittest.TestCase):
         )
         self.chain.mine(1)
 
-        #revealBlockNumber, revealBlockIndex = self.chain.chain.get_tx_position()
-        #print("reveal block number {} and reveal block index {}".format(revealBlockNumber, revealBlockIndex))
+        # revealBlockNumber, revealBlockIndex = self.chain.chain.get_tx_position()
+        # log.info("reveal block number {} and reveal block index {}".format(revealBlockNumber, revealBlockIndex))
 
         def aux(x):
             return x.to_bytes(32, byteorder='big')
 
-        computedfakecommit = (rec_bin(ADDR_A) + self.verifier_contract.address + aux(UNLOCK_AMOUNT) + b'' + rec_bin(witness) + aux(OURGASPRICE) + aux(OURGASLIMIT))
+        computedfakecommit = (rec_bin(ADDR_A) + self.verifier_contract.address + aux(UNLOCK_AMOUNT) + b'' + rec_bin(
+            witness) + aux(OURGASPRICE) + aux(OURGASLIMIT))
         sessionID = sha3_256(computedfakecommit)
-        print(rec_hex(sessionID))
+        log.info(rec_hex(sessionID))
 
-        revealTestSession = self.verifier_contract.getSession(rec_bin("000000000000000000000000000000000000000000000000128dfa6a90b28000"))
-        print(revealTestSession)
-
+        revealTestSession = self.verifier_contract.getSession(
+            rec_bin("000000000000000000000000000000000000000000000000128dfa6a90b28000"))
+        log.info(revealTestSession)
 
 
 if __name__ == "__main__":

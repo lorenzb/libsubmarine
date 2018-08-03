@@ -22,24 +22,6 @@ def rec_bin(x):
             return utils.decode_hex(x)
 
 
-# def deploy_solidity_contracts(solc_config_sources, allow_paths, contract_file, contract_name):
-#     compiled = compile_standard({
-#         'language': 'Solidity',
-#         'sources': {'MerklePatriciaVerifier.sol': {'urls': ['contract/MerklePatriciaVerifier.sol']},
-#                     'RLP.sol': {'urls': ['contract/RLP.sol']},
-#                     # 'Empty.sol': {'urls': ['contract/Empty.sol']},
-#                    },
-#         'settings': {'evmVersion': 'byzantium',
-#                      'outputSelection': {'*': {'*': ['abi', 'evm.bytecode']}},
-#                     },
-#     }, allow_paths=os.path.abspath(os.path.join(os.getcwd(), 'contract')))
-
-#     abi = compiled['contracts']['MerklePatriciaVerifier.sol']['MerklePatriciaVerifier']['abi']
-#     binary = compiled['contracts']['MerklePatriciaVerifier.sol']['MerklePatriciaVerifier']['evm']['bytecode']['object']
-#     address = self.chain.contract(
-#         utils.decode_hex(binary), language='evm', value=0, startgas=10**7, sender=t.k0)
-#     self.verifier_contract = t.ABIContract(self.chain, abi, address)
-
 def deploy_solidity_contract(chain, solc_config_sources, allow_paths, contract_file, contract_name, startgas):
     compiled = compile_standard({
         'language': 'Solidity',
