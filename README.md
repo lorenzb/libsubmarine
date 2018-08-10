@@ -57,11 +57,15 @@ A +-------------------> B
 A +--------------> D
       finalize(4)
 ```
-### Order of Transactions
-1. Commit (`A` --> `B`)
-2. Reveal (`A` --> `C`)
-3. Unlock (`B` --> `C`)
-4. Finalize (`A` --> `D`)
+
+### Order
+
+|Order of Transactions | Order of Generation Client-Side|
+| --- | --- |
+| 1. Commit (`A` --> `B`) | 1. Unlock (`B` --> `C`) |
+| 2. Reveal (`A` --> `C`) | 2. Commit (`A` --> `B`) |
+| 3. Unlock (`B` --> `C`) | 3. Reveal (`A` --> `C`) |
+| 4. Finalize (`A` --> `D`) | 4. Finalize (`A` --> `D`) |
 
 
 ### Generate `TXunlock`
