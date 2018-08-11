@@ -220,6 +220,33 @@ challenge(bytes32 _sessionId, bytes _proofBlob, bytes _unsignedCommitTx)
 - **bytes _unsignedCommitTx**: // TODO
 
 
+-----------
+# Tests
+
+Install Solc
+
+Mac OS X:
+```
+brew update
+brew tap ethereum/ethereum
+brew install solidity
+brew linkapps solidity
+```
+Solc installation guide: http://solidity.readthedocs.io/en/v0.4.24/installing-solidity.html#binary-packages
+
+Install requirements
+
+```
+pip3 install -r requirements.txt
+```
+
+run the tests:
+```
+ python3 test/test_ReceiverContract.py
+ ```
+
+
+-----------
 
 
 # TODO
@@ -229,6 +256,8 @@ challenge(bytes32 _sessionId, bytes _proofBlob, bytes _unsignedCommitTx)
 - Prove that you are correct (Proof of Correctness) and no need to wait for the challenge period to end.
 - Better start/end blocks for states (reveal/challenge)
 - Move test_generator.py to test folder
+- clean up the Tests
+
 
 
 -----------
