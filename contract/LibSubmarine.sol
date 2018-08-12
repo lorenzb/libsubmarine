@@ -164,6 +164,7 @@ contract LibSubmarine is ProvethVerifier {
      * @notice Function called by the submarine address to unlock the session.
      * @param _sessionId Hash of the session instance representing the commit/reveal transaction
      */
+     // TODO: check if enum can be used for state transitions
     function unlock(bytes32 _sessionId) public payable {
         require(sessions[_sessionId].revealBlock > 0
             && !sessions[_sessionId].unlocked,

@@ -102,10 +102,12 @@ class TestLibSubmarine(unittest.TestCase):
             (UNLOCK_AMOUNT + extraTransactionFees), b'').sign(t.k1)
         log.info("Commit TX transaction hash {}".format(
             rec_hex(commit_tx_object.hash)))
+        log.info("Commit TX gas used: {}".format(
+            str(commit_tx_object.intrinsic_gas_used)))
 
-        self.chain.mine(3)
+        self.chain.mine(1)
         self.chain.direct_tx(commit_tx_object)
-        self.chain.mine(3)
+        self.chain.mine(1)
 
         ##
         ## CHECK STATE AFTER COMMIT TX
@@ -189,9 +191,11 @@ class TestLibSubmarine(unittest.TestCase):
             int.from_bytes(unlock_tx_info[8], byteorder="big")  # s
         )
         log.info("Unlock tx hash: {}".format(rec_hex(unlock_tx_object.hash)))
+        log.info("Unlock TX gas used: {}".format(
+            str(unlock_tx_object.intrinsic_gas_used)))
 
         self.chain.direct_tx(unlock_tx_object)
-        self.chain.mine(3)
+        self.chain.mine(1)
 
         ##
         ## CHECK STATE AFTER UNLOCK
@@ -375,7 +379,7 @@ class TestLibSubmarine(unittest.TestCase):
         ).sign(PKEY_B)
         log.info("Fake Unlock tx hash: {}".format(rec_hex(unlock_tx_object.hash)))
         self.chain.direct_tx(unlock_tx_object)
-        self.chain.mine(3)
+        self.chain.mine(1)
 
         ##
         ## CHECK UNLOCKED STATE
