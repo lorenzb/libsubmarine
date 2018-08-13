@@ -223,16 +223,7 @@ challenge(bytes32 _sessionId, bytes _proofBlob, bytes _unsignedCommitTx)
 -----------
 # Tests
 
-Install Solc
-
-Mac OS X:
-```
-brew update
-brew tap ethereum/ethereum
-brew install solidity
-brew linkapps solidity
-```
-Solc installation guide: http://solidity.readthedocs.io/en/v0.4.24/installing-solidity.html#binary-packages
+Install Solc ([Installation guide]( http://solidity.readthedocs.io/en/v0.4.24/installing-solidity.html#binary-packages))
 
 Install requirements
 
