@@ -1,0 +1,13 @@
+sudo: required
+
+services:
+  - docker
+
+before_install:
+  - docker pull lorenzb/proveth
+
+script:
+  - ls
+  - pwd
+  - docker run -v $PWD:/repo lorenzb/proveth bash -c "cp -r /repo /repo2  && cd /repo2/ && python3.6 -m pip install -r requirements.txt && python3.6 test/test_ReceiverContract.py"
+
