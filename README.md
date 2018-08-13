@@ -1,4 +1,7 @@
 # libsubmarine
+
+[![Build Status](https://travis-ci.org/lorenzb/libsubmarine.svg?branch=master)](https://travis-ci.org/lorenzb/libsubmarine)
+
 ```                 _
                     | \
                      '.|
