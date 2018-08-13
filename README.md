@@ -236,21 +236,6 @@ run the tests:
  python3 test/test_ReceiverContract.py
  ```
 
-
------------
-
-
-# TODO
-
-- Explain fraud proofs
-- Explain how to deal with reordering attacks (e.g. maliciously inserting `TXunlock` in front of `TXreveal`). Statemachine with {locked, unlocked} x {unknown, revealed}.
-- Prove that you are correct (Proof of Correctness) and no need to wait for the challenge period to end.
-- Better start/end blocks for states (reveal/challenge)
-- Move test_generator.py to test folder
-- clean up the Tests
-
-
-
 -----------
 # Disclaimer
 This project is a Work in Progress.
