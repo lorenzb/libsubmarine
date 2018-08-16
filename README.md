@@ -119,42 +119,8 @@ Reveal transaction should include a deposit `revealDeposit` which will be refund
 
 -------
 
-```console
-[07-25 01:17:47] (master) ~/Documents/Github/submarines
-🍺  tree
-.
-├── README.md // That'd be me
-├── contract
-│	├── LibSubmarine.sol // Registry Contract
-│	├── MerklePatriciaVerifier.sol // MP Verifier Contract
-│	├── RLP.sol // RLPReader
-│	└── SafeMath.sol
-├── generate_commitment // Generate AddressB and UnlockTx
-│	├── Go
-│	│	└── make_transaction.go //Go Implementation, NOT DONE
-│	├── README.md // Docs
-│	├── __init__.py
-│	├── generate_submarine_commit.py //Python Implementation, VERIFIED for 0.1.0
-│	└── requirements.txt
-├── generate_merkle //Generate Merkle Proof
-│	├── __init__.py
-│	├── generateProof.js
-│	├── generator.py
-│	└── test_generator.py
-├── requirements.txt
-└── test // Tests, duh!
-   ├── test_MerklePatriciaVerifier.py
-   ├── test_ReceiverContract.py
-   └── test_utils.py
-
-5 directories, 18 files
-(=ↀωↀ=)
-```
--------
-
-
 # LibSubmarine.sol
-LibSubmarine Registry.
+LibSubmarine Registry in `contract/LibSubmarine.sol`.
 
 ### Constructor
 ```javascript
