@@ -91,7 +91,7 @@ class TestLibSubmarine(unittest.TestCase):
         ##
         ## GENERATE UNLOCK AND BROADCAST TX, THEN BROADCAST COMMIT TX
         ##
-        addressB, commit, witness, unlock_tx_hex = generate_submarine_commit.generateAddressB(
+        addressB, commit, witness, unlock_tx_hex = generate_submarine_commit.generateCommitAddress(
             normalize_address(rec_hex(t.a1)),
             normalize_address(rec_hex(self.verifier_contract.address)),
             UNLOCK_AMOUNT, b'', OURGASPRICE, OURGASLIMIT)

@@ -38,20 +38,32 @@ s: Keccak256(commit | 1)
 v: 27 // This makes TXunlock replayable across chains (i.e. compatible to be used on ropsten and mainnet and rinkeby etc)
 ```
 
-### Python Implementation
-generate_submarine_commit.py
+## Python Implementation
+The python implementation can be found in the file generate_submarine_commit.py. 
+This can be run as a standalone program on the command line. See the `-h` parameter for help options.
 
-> tx, addressB, commit, randw = generateAddressB(addressA, addressC, sendAmount, data, gasPrice, gasLimit)
-
-`generateAddressB` Returns:
+### Generate Commit Address
+You can import this function in python to generate commit addresses in your own code.
+```python
+def generateCommitAddress(fromAddress, toAddress, sendAmount, dappData, gasPrice, gasLimit):
 ```
-tx (obj) --> reveal transaction (addressB to addressC), includes unlock(commit) in data field
-addressB : Commit transaction receiver
-commit : commit message
-randw: w (witness) random bytes
-```
+#### Parameters
+- **bytes fromAddress**: User controlled address from which submarine workflow starts, i.e. your address.
+- **bytes toAddress**: Target end address that the submarine commitment will send money to. Usually the LibSubmarine Contract address.
+- **int sendAmount**: Amount of money in Wei to send through the submarine commitment.
+- **bytes dappData**: Any additional data to send in the function call peformed by the commitment. Usually this should be set to any empty bytes object e.g. b""
+- **int gasPrice**: The gas price to use for the TXUnlock transaction from the commit address to the target.
+- **int gasLimit**:The gas limit to use for the TXUnlock transaction from the commit address to the target.
 
-Example:
+#### Return Values
+- **tuple (addressB, commit, witness, tx_hex)**
+    - **str addressB**: The commit address hext string that is the Ethereum address that will lock up the submarine commitment. You send money to this address.
+    - **str commit**: This is the calculated hex string `commit = Keccak256(addr(A) | addr(C) | $value | d | w | gasPrice | gasLimit)` as discussed above.
+    - **str witness**: Random witness hex string. We use Linux URandom for this.
+    - **str tx_hex**: Hex string representation of the unlock transaction. This can be broadcast directly to the network, and will perform TxUnlock.
+
+
+### Example
 ```javascript
 AddressB: 0x5338d846d05448d44138cd19982bf3cb0c87a756
 commit: 79ae69adf744d9ccc88d487d7bb7be0f948c2902b016abb5b34bec2b554c4561

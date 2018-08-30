@@ -160,7 +160,7 @@ def printRemix(fromAddress, tx, w):
                                                 data, wit, gasprice, gaslimit))
 
 
-def generateAddressB(fromAddress, toAddress, sendAmount, dappData, gasPrice,
+def generateCommitAddress(fromAddress, toAddress, sendAmount, dappData, gasPrice,
                      gasLimit):
     '''
     Exportable _generateAddressBInternal
