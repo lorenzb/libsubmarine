@@ -163,7 +163,7 @@ class TestLibSubmarine(unittest.TestCase):
                          "Session.commitIndex wrong")
         self.assertEqual(commitBlockNumber, revealTestSession[3],
                          "Session.commitBlock wrong")
-        self.assertEqual(8, revealTestSession[4], "Session.revealBlock wrong")
+        self.assertEqual(4, revealTestSession[4], "Session.revealBlock wrong")
         self.assertEqual(b'', revealTestSession[5], "Session.data wrong")
         self.assertEqual(
             rec_hex(DAPP_ADDRESS), revealTestSession[6],
@@ -213,7 +213,7 @@ class TestLibSubmarine(unittest.TestCase):
                          "Session.commitIndex wrong")
         self.assertEqual(commitBlockNumber, revealTestSession[3],
                          "Session.commitBlock wrong")
-        self.assertEqual(8, revealTestSession[4], "Session.revealBlock wrong")
+        self.assertEqual(4, revealTestSession[4], "Session.revealBlock wrong")
         self.assertEqual(b'', revealTestSession[5], "Session.data wrong")
         self.assertEqual(
             rec_hex(DAPP_ADDRESS), revealTestSession[6],
