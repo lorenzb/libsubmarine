@@ -145,9 +145,9 @@ contract LibSubmarine is ProvethVerifier {
             _gasPrice,
             _gasLimit
         )); //implicitly checks msg.sender is A to generate valid sessionId
-        require(msg.value >= revealDepositAmount, 'Reveal deposit not provided');
-        require(sessions[sessionId].revealBlock == 0, 'The tx is already revealed');
-        require(!sessions[sessionId].unlocked, 'The tx should not be already unlocked');
+        require(msg.value >= revealDepositAmount, "Reveal deposit not provided");
+        require(sessions[sessionId].revealBlock == 0, "The tx is already revealed");
+        require(!sessions[sessionId].unlocked, "The tx should not be already unlocked");
         if (blockhash(_commitBlock) != 0x0) {
             blockNumberToHash[_commitBlock] = blockhash(_commitBlock);
         } // TODO we need to throw or do something to tell people when we can't find the block hash (too old)
@@ -168,9 +168,9 @@ contract LibSubmarine is ProvethVerifier {
     function unlock(bytes32 _sessionId) public payable {
         require(sessions[_sessionId].revealBlock > 0
             && !sessions[_sessionId].unlocked,
-            'The tx is already unlocked, or not yet revealed'
+            "The tx is already unlocked, or not yet revealed"
         );
-        require(msg.value == sessions[_sessionId].commitValue, 'The unlocked value does not match the revealed value');
+        require(msg.value == sessions[_sessionId].commitValue, "The unlocked value does not match the revealed value");
         sessions[_sessionId].unlocked = true;
         emit Unlocked(_sessionId, msg.value);
     }
@@ -209,8 +209,8 @@ contract LibSubmarine is ProvethVerifier {
      * @param _unsignedCommitTx unsignedCommitTx
      */
     function challenge(bytes32 _sessionId, bytes _proofBlob, bytes _unsignedCommitTx) public {
-        require(block.number < sessions[_sessionId].revealBlock.add(challengePeriodLength), 'Challenge period is not active');
-        require(sessions[_sessionId].revealBlock > 0, 'Reveal tx has not yet been sent'); /* TODO: Check if need to require unlock has occured */
+        require(block.number < sessions[_sessionId].revealBlock.add(challengePeriodLength), "Challenge period is not active");
+        require(sessions[_sessionId].revealBlock > 0, "Reveal tx has not yet been sent"); /* TODO: Check if need to require unlock has occured */
 
         MPProof memory mpProof;
         (mpProof.result, mpProof.index, mpProof.nonce, , , mpProof.to, mpProof.value, mpProof.data, , ,) = txProof(blockNumberToHash[sessions[_sessionId].commitBlock], _proofBlob);
@@ -218,7 +218,7 @@ contract LibSubmarine is ProvethVerifier {
         // TX_PROOF_RESULT_INVALID = 0;
         // TX_PROOF_RESULT_PRESENT = 1;
         // TX_PROOF_RESULT_ABSENT = 2;
-        require(mpProof.result != 0, 'The proof is invalid');
+        require(mpProof.result != 0, "The proof is invalid");
 
         UnsignedTx memory unsignedTx;
         (,unsignedTx.sigHash , , , , , , ) = decodeAndHashUnsignedTx(_unsignedCommitTx);
@@ -264,10 +264,10 @@ contract LibSubmarine is ProvethVerifier {
      * @param _sessionId Hash of the session instance representing the commit/reveal transaction
      */
     function finalize(bytes32 _sessionId) public returns (uint256 commitValue, bytes memory data) {
-        require(msg.sender == sessions[_sessionId].dappAddress, 'The msg.sender does not match the dApp in the reveal tx');
+        require(msg.sender == sessions[_sessionId].dappAddress, "The msg.sender does not match the dApp in the reveal tx");
         require(block.number > sessions[_sessionId].revealBlock.add(challengePeriodLength)
             && sessions[_sessionId].unlocked,
-            'The challenge period is not over, the tx was not unlocked, or the session was slashed');
+            "The challenge period is not over, the tx was not unlocked, or the session was slashed");
         commitValue = sessions[_sessionId].commitValue;
         data = sessions[_sessionId].data;
         sessions[_sessionId].dappAddress.transfer(commitValue.add(revealDepositAmount)); /* TODO: check if it is possible to return the deposit to the user directly */
