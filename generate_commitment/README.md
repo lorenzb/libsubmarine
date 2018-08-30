@@ -60,15 +60,3 @@ Reveal Transaction (hex): f88f80850ba43b74008338a58a947aeb1fd3a42731c4ae80870044
 ```
 Sample Commit Transaction on Ropsten: [0x8345f014dc005a207f0eece7246d83b10b4cabe1f63cfe8dde3d5e82a21fd290](https://ropsten.etherscan.io/tx/0x8345f014dc005a207f0eece7246d83b10b4cabe1f63cfe8dde3d5e82a21fd290)
 
-
-
-
-### Go Implementation
-
-Initially implemented in Go, mostly reused codes from Go-ethereum
-
-The final transaction fails to broadcast due to wrong RLP encoding.
-Parity Error:
-```javascript
-Error! Unable to broadcast Tx : {"jsonrpc":"2.0","error":{"code":-32602,"message":"Invalid RLP.","data":"RlpExpectedToBeList"},"id":1}
-```
