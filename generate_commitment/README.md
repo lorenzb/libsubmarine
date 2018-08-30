@@ -1,6 +1,6 @@
 # Generate Submarine Commitment
 
-Generates `TXunlock` transaction and Address `B`.
+This library generates a `TXunlock` transaction and Address `B` for use with libsubmarine.
 
 
 ```
@@ -17,24 +17,26 @@ A +-------------------> B
     TXreveal (2)
 ```
 
-`A` chooses a (e.g. 256-bit) witness `w` uniformly at random and computes
+Party `A` (e.g. end-user Alice) chooses a (e.g. 256-bit) witness `w` value uniformly at random and computes
 `commit = Keccak256(addr(A) | addr(C) | $value | d | w | gasPrice | gasLimit)`.
 
-`commit` also used as `sessionId` in the other
-`A` then generates a transaction `TXunlock` committing to data `d`.
+This `commit` is used as a `sessionId` in `LibSubmarine.sol`
+
+Party `A` then generates a transaction `TXunlock` committing to data `d` and sending money to contract C:
+
+Note: In our LibSubmarine implementation, `unlockFunctionSelector = decode_hex("ec9b5b3a")` is added to the final value of `d` to call the `unlock(bytes32 _sessionId)` function in `C` (where C is LibSubmarine.sol)
 
 ```javascript
 to: C
 value: $value
 nonce: 0
-data: commit
+data: 0xec9b5b3a + commit
 gasPrice: $gp
 gasLimit: gl
 r: Keccak256(commit | 0)
 s: Keccak256(commit | 1)
-v: 27 // This makes TXunlock replayable across chains ¯\_(ツ)_/¯
+v: 27 // This makes TXunlock replayable across chains (i.e. compatible to be used on ropsten and mainnet and rinkeby etc)
 ```
-
 
 ### Python Implementation
 generate_submarine_commit.py
@@ -48,8 +50,6 @@ addressB : Commit transaction receiver
 commit : commit message
 randw: w (witness) random bytes
 ```
-
-Note: `unlockFunctionSelector = decode_hex("ec9b5b3a")` is added to the final value of `d` to call proper function in `C`
 
 Example:
 ```javascript

@@ -5,7 +5,7 @@ import sys
 import unittest
 from ethereum import config, transactions
 from ethereum.tools import tester as t
-from ethereum.utils import checksum_encode, normalize_address, sha3_256
+from ethereum.utils import checksum_encode, normalize_address
 from test_utils import rec_hex, rec_bin, deploy_solidity_contract_with_args
 
 sys.path.append(
@@ -91,7 +91,7 @@ class TestLibSubmarine(unittest.TestCase):
         ##
         ## GENERATE UNLOCK AND BROADCAST TX, THEN BROADCAST COMMIT TX
         ##
-        addressB, commit, witness, unlock_tx_hex = generate_submarine_commit.generateAddressBexport(
+        addressB, commit, witness, unlock_tx_hex = generate_submarine_commit.generateAddressB(
             normalize_address(rec_hex(t.a1)),
             normalize_address(rec_hex(self.verifier_contract.address)),
             UNLOCK_AMOUNT, b'', OURGASPRICE, OURGASLIMIT)
@@ -265,13 +265,12 @@ class TestLibSubmarine(unittest.TestCase):
         # TODO I have no idea how to do a better gas cost estimation than this
         # TODO and the gas cost isn't the same each time which is strange... maybe EVM bug? unsure
         self.assertLessEqual(
-            1000000000000000000000000 + UNLOCK_AMOUNT - (OURGASPRICE * OURGASLIMIT),
-            self.chain.head_state.get_balance(rec_hex(DAPP_ADDRESS))
-        )
+            1000000000000000000000000 + UNLOCK_AMOUNT -
+            (OURGASPRICE * OURGASLIMIT),
+            self.chain.head_state.get_balance(rec_hex(DAPP_ADDRESS)))
         self.assertGreater(
             1000000000000000000000000 + UNLOCK_AMOUNT,
-            self.chain.head_state.get_balance(rec_hex(DAPP_ADDRESS))
-        )
+            self.chain.head_state.get_balance(rec_hex(DAPP_ADDRESS)))
 
     def test_dishonest_party(self):
         ADDR_A = rec_hex(t.a1)
@@ -294,15 +293,18 @@ class TestLibSubmarine(unittest.TestCase):
         ##
         ## CHECK STATE AFTER COMMIT TX
         ##
-        log.info("Dishonest Commit Tx block number {} and tx block index {}".format(
-            fakecommitBlockNumber, fakecommitBlockIndex))
+        log.info(
+            "Dishonest Commit Tx block number {} and tx block index {}".format(
+                fakecommitBlockNumber, fakecommitBlockIndex))
         # tx_reciept = self.chain.tx(t.k1, rec_bin(addressB), (UNLOCK_AMOUNT + extraTransactionFees), b'', 21000, 10**6)
-        log.info("Dishonest State: After commit A1 has {} and has address {}".format(
-            self.chain.head_state.get_balance(ADDR_A), ADDR_A))
-        log.info("Dishonest State: After commit B has {} and has address {}".format(
-            self.chain.head_state.get_balance(ADDR_B), ADDR_B))
-        self.assertEqual(1000000000000000000000000 + UNLOCK_AMOUNT + extraTransactionFees,
-                         self.chain.head_state.get_balance(ADDR_B))
+        log.info("Dishonest State: After commit A1 has {} and has address {}".
+                 format(self.chain.head_state.get_balance(ADDR_A), ADDR_A))
+        log.info(
+            "Dishonest State: After commit B has {} and has address {}".format(
+                self.chain.head_state.get_balance(ADDR_B), ADDR_B))
+        self.assertEqual(
+            1000000000000000000000000 + UNLOCK_AMOUNT + extraTransactionFees,
+            self.chain.head_state.get_balance(ADDR_B))
         self.assertEqual(999998562999979000000000,
                          self.chain.head_state.get_balance(ADDR_A))
 
@@ -339,30 +341,23 @@ class TestLibSubmarine(unittest.TestCase):
             return x.to_bytes(32, byteorder='big')
 
         fakeSessionId = self.verifier_contract.getSessionId(
-            ADDR_A,
-            self.verifier_contract.address,
-            UNLOCK_AMOUNT,
-            b'',
-            rec_bin(witness),
-            OURGASPRICE,
-            OURGASLIMIT
-        )
+            ADDR_A, self.verifier_contract.address, UNLOCK_AMOUNT, b'',
+            rec_bin(witness), OURGASPRICE, OURGASLIMIT)
         log.info(fakeSessionId)
         fakeSession = self.verifier_contract.getSession(fakeSessionId)
         log.info("Dishonest fake session " + str(fakeSession))
         self.assertListEqual(
             [
-                False,                                              # sesh.unlocked
-                1337000000000000000,                                # sesh.commitValue,
-                1,                                                  # sesh.commitIndex,
-                2,                                                  # sesh.commitBlock,
-                3,                                                  # sesh.revealBlock,
-                b'',                                                # sesh.data,
-                '0xdeadbeef000000000000000000000000deadbeef'        # sesh.dappAddress
+                False,  # sesh.unlocked
+                1337000000000000000,  # sesh.commitValue,
+                1,  # sesh.commitIndex,
+                2,  # sesh.commitBlock,
+                3,  # sesh.revealBlock,
+                b'',  # sesh.data,
+                '0xdeadbeef000000000000000000000000deadbeef'  # sesh.dappAddress
             ],
             fakeSession,
-            "Session State is wrong"
-        )
+            "Session State is wrong")
 
         ##
         ## FAKE AN "UNLOCK" TX
@@ -377,7 +372,8 @@ class TestLibSubmarine(unittest.TestCase):
             UNLOCK_AMOUNT,  # value
             fakeDataUnlock,  # data
         ).sign(PKEY_B)
-        log.info("Fake Unlock tx hash: {}".format(rec_hex(unlock_tx_object.hash)))
+        log.info("Fake Unlock tx hash: {}".format(
+            rec_hex(unlock_tx_object.hash)))
         self.chain.direct_tx(unlock_tx_object)
         self.chain.mine(1)
 
@@ -388,17 +384,16 @@ class TestLibSubmarine(unittest.TestCase):
         log.info("Dishonest fake session post unlock " + str(fakeSession))
         self.assertListEqual(
             [
-                True,                                              # sesh.unlocked
-                1337000000000000000,                                # sesh.commitValue,
-                1,                                                  # sesh.commitIndex,
-                2,                                                  # sesh.commitBlock,
-                3,                                                  # sesh.revealBlock,
-                b'',                                                # sesh.data,
-                '0xdeadbeef000000000000000000000000deadbeef'        # sesh.dappAddress
+                True,  # sesh.unlocked
+                1337000000000000000,  # sesh.commitValue,
+                1,  # sesh.commitIndex,
+                2,  # sesh.commitBlock,
+                3,  # sesh.revealBlock,
+                b'',  # sesh.data,
+                '0xdeadbeef000000000000000000000000deadbeef'  # sesh.dappAddress
             ],
             fakeSession,
-            "Session State is wrong"
-        )
+            "Session State is wrong")
 
         unlockBlockNumber, unlockBlockIndex = self.chain.chain.get_tx_position(
             unlock_tx_object)
@@ -411,6 +406,7 @@ class TestLibSubmarine(unittest.TestCase):
 
         # TODO generate the proof blob using proveth.py generate_proof_blob()
         # TODO then call the challenge function
+
 
 if __name__ == "__main__":
     unittest.main()
