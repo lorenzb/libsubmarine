@@ -1,4 +1,7 @@
 # libsubmarine
+
+[![Build Status](https://travis-ci.org/lorenzb/libsubmarine.svg?branch=master)](https://travis-ci.org/lorenzb/libsubmarine)
+
 ```                 _
                     | \
                      '.|
@@ -120,42 +123,8 @@ Reveal transaction should include a deposit `revealDeposit` which will be refund
 
 -------
 
-```console
-[07-25 01:17:47] (master) ~/Documents/Github/submarines
-🍺  tree
-.
-├── README.md // That'd be me
-├── contract
-│	├── LibSubmarine.sol // Registry Contract
-│	├── MerklePatriciaVerifier.sol // MP Verifier Contract
-│	├── RLP.sol // RLPReader
-│	└── SafeMath.sol
-├── generate_commitment // Generate AddressB and UnlockTx
-│	├── Go
-│	│	└── make_transaction.go //Go Implementation, NOT DONE
-│	├── README.md // Docs
-│	├── __init__.py
-│	├── generate_submarine_commit.py //Python Implementation, VERIFIED for 0.1.0
-│	└── requirements.txt
-├── generate_merkle //Generate Merkle Proof
-│	├── __init__.py
-│	├── generateProof.js
-│	├── generator.py
-│	└── test_generator.py
-├── requirements.txt
-└── test // Tests, duh!
-   ├── test_MerklePatriciaVerifier.py
-   ├── test_ReceiverContract.py
-   └── test_utils.py
-
-5 directories, 18 files
-(=ↀωↀ=)
-```
--------
-
-
 # LibSubmarine.sol
-LibSubmarine Registry.
+LibSubmarine Registry in `contract/LibSubmarine.sol`.
 
 ### Constructor
 ```javascript
@@ -224,16 +193,21 @@ challenge(bytes32 _sessionId, bytes _proofBlob, bytes _unsignedCommitTx)
 - **bytes _unsignedCommitTx**: // TODO
 
 
+-----------
+# Tests
 
+Install Solc ([Installation guide]( http://solidity.readthedocs.io/en/v0.4.24/installing-solidity.html#binary-packages))
 
-# TODO
+Install requirements
 
-- Explain fraud proofs
-- Explain how to deal with reordering attacks (e.g. maliciously inserting `TXunlock` in front of `TXreveal`). Statemachine with {locked, unlocked} x {unknown, revealed}.
-- Prove that you are correct (Proof of Correctness) and no need to wait for the challenge period to end.
-- Better start/end blocks for states (reveal/challenge)
-- Move test_generator.py to test folder
+```
+pip3 install -r requirements.txt
+```
 
+run the tests:
+```
+ python3 test/test_ReceiverContract.py
+ ```
 
 -----------
 # Disclaimer
