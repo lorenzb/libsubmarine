@@ -7,7 +7,7 @@ import rlp
 import argparse
 import os
 
-from ethereum.utils import decode_hex, normalize_address, encode_hex, bytearray_to_int, sha3_256  # sha3_256 is same as Keccak256
+from ethereum.utils import check_checksum, decode_hex, normalize_address, encode_hex, bytearray_to_int, sha3_256  # sha3_256 is same as Keccak256
 from ethereum.exceptions import InvalidTransaction
 from py_ecc.secp256k1 import N as secp256k1n
 
@@ -160,8 +160,8 @@ def printRemix(fromAddress, tx, w):
                                                 data, wit, gasprice, gaslimit))
 
 
-def generateCommitAddress(fromAddress, toAddress, sendAmount, dappData, gasPrice,
-                     gasLimit):
+def generateCommitAddress(fromAddress, toAddress, sendAmount, dappData,
+                          gasPrice, gasLimit):
     '''
     Exportable _generateAddressBInternal
 
@@ -267,17 +267,17 @@ def main():
         log.error(
             "From Address length does not appear to match the correct length of an Ethereum address"
         )
-        sys.exit(2)
+        sys.exit(1)
     if parser.target_address[0:2] != "0x":
         log.error(
             "Target address not in expected format, expected address to start with 0x"
         )
-        sys.exit(3)
+        sys.exit(1)
     if parser.from_address[0:2] != "0x":
         log.error(
             "From address not in expected format, expected address to start with 0x"
         )
-        sys.exit(4)
+        sys.exit(1)
     hex_alphabet = [
         "0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "a", "b", "c", "d",
         "e", "f"
@@ -287,18 +287,29 @@ def main():
             log.error(
                 "Found character in target address that does not match hex value: {}".
                 format(hexChar))
-            sys.exit(5)
+            sys.exit(1)
     for hexChar in parser.from_address[2:].lower():
         if hexChar not in hex_alphabet:
             log.error(
                 "Found character in from address that does not match hex value: {}".
                 format(hexChar))
-            sys.exit(6)
+            sys.exit(1)
 
-    gasPrice = parser.gas_price
-    gasLimit = parser.gas_limit
+    if not check_checksum(parser.target_address):
+        log.error(
+            "Target address is not correctly encoded using EIP-55 {}".format(
+                parser.target_address))
+        sys.exit(1)
+    if not check_checksum(parser.from_address):
+        log.error(
+            "From address is not correctly encoded using EIP-55 {}".format(
+                parser.from_address))
+        sys.exit(1)
+
     toAddress = normalize_address(parser.target_address)
     fromAddress = normalize_address(parser.from_address)
+    gasPrice = parser.gas_price
+    gasLimit = parser.gas_limit
     sendAmount = parser.amount
     if (parser.dapp_data):
         dappData = rec_bin(parser.dapp_data)
@@ -312,12 +323,12 @@ def main():
     # printRemix(fromAddress, tx, encode_hex(randw))
     print("-" * 35)
 
-    print("AddressB: %s" % addressB
+    print("AddressB: {}".format(addressB)
           )  # addressB also can retrieved using tx.to_dict().get("sender")
-    print("commit: %s" % encode_hex(commit))
-    print("witness (w): %s" % encode_hex(randw))
-    # print("Reveal Transation (json): %s" % tx.to_dict())
-    print("Reveal Transaction (hex): %s" % encode_hex(rlp.encode(tx)))
+    print("commit: {}".format(encode_hex(commit)))
+    print("witness (w): {}".format(encode_hex(randw)))
+    # print("Reveal Transation (json): {}".format(tx.to_dict()))
+    print("Reveal Transaction (hex): {}".format(encode_hex(rlp.encode(tx))))
     print(
         "You can use the reveal transaction hex to broadcast with any service you like, e.g.: https://ropsten.etherscan.io/pushTx"
     )
