@@ -25,7 +25,7 @@ log.addHandler(logHandler)
 unlockFunctionSelector = decode_hex("ec9b5b3a")
 
 
-def generateRS(addressA, addressC, sendAmount, dappData, gasPrice, gasLimit):
+def _generateRS(addressA, addressC, sendAmount, dappData, gasPrice, gasLimit):
     '''
     Internal Function
     Calculates R & S in a way that
@@ -45,8 +45,8 @@ def generateRS(addressA, addressC, sendAmount, dappData, gasPrice, gasLimit):
 
     '''
     #TODO: validate AddressA and AddressC
-    commit, randw = generateCommit(addressA, addressC, sendAmount, dappData,
-                                   gasPrice, gasLimit)
+    commit, randw = _generateCommit(addressA, addressC, sendAmount, dappData,
+                                    gasPrice, gasLimit)
 
     R = bytearray_to_int(sha3_256(commit + bytes(1)))
     S = bytearray_to_int(sha3_256(commit + bytes(0)))
@@ -55,16 +55,16 @@ def generateRS(addressA, addressC, sendAmount, dappData, gasPrice, gasLimit):
         return commit, randw, R, S
     else:
         log.info("Invalid R,S. Regenerating the hashes...")
-        return generateRS(addressA, addressC, sendAmount, dappData, gasPrice,
-                          gasLimit)
+        return _generateRS(addressA, addressC, sendAmount, dappData, gasPrice,
+                           gasLimit)
 
 
-def generateCommit(addressA, addressC, sendAmount, dappData, gasPrice,
-                   gasLimit):
+def _generateCommit(addressA, addressC, sendAmount, dappData, gasPrice,
+                    gasLimit):
     '''
     Internal Function
     Generates a random number (w for witness) and calculates the Keccak256 hash of (AddressA | Address C | sendAmount | data | w)
-    Called from generateRS()
+    Called from _generateRS()
     :param addressA: Sender's Address
     :param addressC: Smart Contracts Address
     :param sendAmount: Send Amount (in Wei)
@@ -119,8 +119,8 @@ def _generateAddressBInternal(addressA,
     randw: w (witness) random number
     '''
 
-    commit, randw, R, S = generateRS(addressA, addressC, sendAmount, dappData,
-                                     gasPrice, gasLimit)
+    commit, randw, R, S = _generateRS(addressA, addressC, sendAmount, dappData,
+                                      gasPrice, gasLimit)
 
     submarineData = unlockFunctionSelector + commit
     # assert(len(commit) == 36)
@@ -247,7 +247,7 @@ def _get_args():
         type=int,
         default=3712394,
         help=
-        "Optional Gas limit for TX Unlock transaction. Default is 3.7 MWei.")
+        "Optional Gas limit for TX Unlock transaction. Default is 3.7 million gas.")
     return parser.parse_args()
 
 
@@ -278,22 +278,6 @@ def main():
             "From address not in expected format, expected address to start with 0x"
         )
         sys.exit(1)
-    hex_alphabet = [
-        "0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "a", "b", "c", "d",
-        "e", "f"
-    ]
-    for hexChar in parser.target_address[2:].lower():
-        if hexChar not in hex_alphabet:
-            log.error(
-                "Found character in target address that does not match hex value: {}".
-                format(hexChar))
-            sys.exit(1)
-    for hexChar in parser.from_address[2:].lower():
-        if hexChar not in hex_alphabet:
-            log.error(
-                "Found character in from address that does not match hex value: {}".
-                format(hexChar))
-            sys.exit(1)
 
     if not check_checksum(parser.target_address):
         log.error(
