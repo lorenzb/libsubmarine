@@ -9,22 +9,14 @@ contract LibSubmarine is ProvethVerifier {
     using SafeMath for uint256;
     using SafeMath32 for uint32;
 
-    uint256 public revealDepositAmount;   /* TODO: check if can be smaller than uint256 */
-    uint32 public challengePeriodLength;
-    uint8 public vee = 27;
-
-    mapping(bytes32 => Session) public sessions;
-    mapping(uint32 => bytes32) public blockNumberToHash;
-
-    struct Session {
-        bool unlocked;       // set in unlock, used in reveal and finalize
-        address dappAddress; // set in reveal, used in finalize
-        uint256 commitValue; // set in reveal, used in unlock, challenge, and finalize
-        uint256 commitIndex; // set in reveal, used in challenge
-        uint32 commitBlock;  // set in reveal, used in challenge
-        uint32 revealBlock;  // set in reveal, used in unlock, challenge, and finalize
-        bytes commitData;    // set in reveal, used in finalize
+    constructor(uint256 _revealDepositAmount, uint32 _challengePeriodLength) public {
+        revealDepositAmount = _revealDepositAmount;
+        challengePeriodLength = _challengePeriodLength;
     }
+
+    ////////////
+    // Events //
+    ////////////
 
     event Unlocked(
         bytes32 indexed _sessionId,
@@ -55,10 +47,25 @@ contract LibSubmarine is ProvethVerifier {
         bytes _commitData
     );
 
+    /////////////
+    // Storage //
+    /////////////
 
-    constructor(uint256 _revealDepositAmount, uint32 _challengePeriodLength) public {
-        revealDepositAmount = _revealDepositAmount;
-        challengePeriodLength = _challengePeriodLength;
+    uint256 public revealDepositAmount;   /* TODO: check if can be smaller than uint256 */
+    uint32 public challengePeriodLength;
+    uint8 public vee = 27;
+
+    mapping(bytes32 => Session) public sessions;
+    mapping(uint32 => bytes32) public blockNumberToHash;
+
+    struct Session {
+        bool unlocked;       // set in unlock, used in reveal and finalize
+        address dappAddress; // set in reveal, used in finalize
+        uint256 commitValue; // set in reveal, used in unlock, challenge, and finalize
+        uint256 commitIndex; // set in reveal, used in challenge
+        uint32 commitBlock;  // set in reveal, used in challenge
+        uint32 revealBlock;  // set in reveal, used in unlock, challenge, and finalize
+        bytes commitData;    // set in reveal, used in finalize
     }
 
     /////////////
@@ -114,6 +121,10 @@ contract LibSubmarine is ProvethVerifier {
         }
         return (false, 0, "");
     }
+
+    /////////////
+    // Setters //
+    /////////////
 
     /**
      * @notice Function called by the user to reveal the session.
