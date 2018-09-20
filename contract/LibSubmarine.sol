@@ -17,13 +17,13 @@ contract LibSubmarine is ProvethVerifier {
     mapping(uint32 => bytes32) public blockNumberToHash;
 
     struct Session {
-        bool unlocked;
-        address dappAddress;
-        uint256 commitValue; /* TODO: check if can be smaller than uint256 */
-        uint256 commitIndex; /* TODO: check if can be smaller than uint256 */
-        uint32 commitBlock;
-        uint32 revealBlock;
-        bytes data;
+        bool unlocked;       // set in unlock, used in reveal and finalize
+        address dappAddress; // set in reveal, used in finalize
+        uint256 commitValue; // set in reveal, used in unlock, challenge, and finalize
+        uint256 commitIndex; // set in reveal, used in challenge
+        uint32 commitBlock;  // set in reveal, used in challenge
+        uint32 revealBlock;  // set in reveal, used in unlock, challenge, and finalize
+        bytes commitData;    // set in reveal, used in finalize
     }
 
     event Unlocked(
@@ -33,7 +33,7 @@ contract LibSubmarine is ProvethVerifier {
     event Revealed(
         bytes32 indexed _sessionId,
         uint256 _commitValue,
-        bytes _data,
+        bytes _commitData,
         bytes32 _witness,
         uint32 _commitBlock,
         uint256 _commitIndex
@@ -52,7 +52,7 @@ contract LibSubmarine is ProvethVerifier {
         address indexed _sender,
         uint256 _amountTemp,
         uint256 _revealDeposit,
-        bytes _dataTemp
+        bytes _commitData
     );
 
 
@@ -69,12 +69,12 @@ contract LibSubmarine is ProvethVerifier {
         address _sender,
         address _registry,
         uint256 _commitValue,
-        bytes _data,
+        bytes _commitData,
         bytes32 _witness,
         uint256 _gasPrice,
         uint256 _gasLimit
     ) public pure returns (bytes32) {
-        return keccak256(abi.encodePacked(_sender, _registry, _commitValue, _data, _witness, _gasPrice, _gasLimit));
+        return keccak256(abi.encodePacked(_sender, _registry, _commitValue, _commitData, _witness, _gasPrice, _gasLimit));
     }
 
     function getSession(bytes32 _sessionId) public view returns (
@@ -83,7 +83,7 @@ contract LibSubmarine is ProvethVerifier {
         uint256 commitIndex,
         uint32 commitBlock,
         uint32 revealBlock,
-        bytes data,
+        bytes commitData,
         address dappAddress
     ) {
         Session memory sesh = sessions[_sessionId];
@@ -93,7 +93,7 @@ contract LibSubmarine is ProvethVerifier {
             sesh.commitIndex,
             sesh.commitBlock,
             sesh.revealBlock,
-            sesh.data,
+            sesh.commitData,
             sesh.dappAddress
         );
     }
@@ -102,14 +102,14 @@ contract LibSubmarine is ProvethVerifier {
      * @notice Checks if the session is ready to be finalized.
      * @param _sessionId Hash of the session instance representing the commit/reveal transaction
      */
-    function isFinalizable(bytes32 _sessionId) public view returns (bool finalized, uint256 commitValue, bytes data) {
+    function isFinalizable(bytes32 _sessionId) public view returns (bool finalized, uint256 commitValue, bytes commitData) {
         if (block.number > sessions[_sessionId].revealBlock.add(challengePeriodLength)
                     && sessions[_sessionId].unlocked
                     && sessions[_sessionId].revealBlock > 0) {
             return (
                 true,
                 sessions[_sessionId].commitValue,
-                sessions[_sessionId].data
+                sessions[_sessionId].commitData
             );
         }
         return (false, 0, "");
@@ -122,7 +122,7 @@ contract LibSubmarine is ProvethVerifier {
      * @param _commitIndex Index of the commit tx in the block.
      * @param _dappAddress Address which can finalize the tx and retreive the funds.
      * @param _commitValue Value included in the commit tx.
-     * @param _data Data to pass to the receiver dApp.
+     * @param _commitData Data to pass to the receiver dApp.
      * @param _witness Witness
      * @param _gasPrice Gas price
      * @param _gasLimit Gas limit
@@ -132,7 +132,7 @@ contract LibSubmarine is ProvethVerifier {
         uint256 _commitIndex,
         address _dappAddress,
         uint256 _commitValue,
-        bytes _data,
+        bytes _commitData,
         bytes32 _witness,
         uint256 _gasPrice,
         uint256 _gasLimit
@@ -141,7 +141,8 @@ contract LibSubmarine is ProvethVerifier {
             msg.sender,
             address(this),
             _commitValue,
-            _data, _witness,
+            _commitData,
+            _witness,
             _gasPrice,
             _gasLimit
         )); //implicitly checks msg.sender is A to generate valid sessionId
@@ -155,9 +156,9 @@ contract LibSubmarine is ProvethVerifier {
         sessions[sessionId].commitIndex = _commitIndex;
         sessions[sessionId].commitBlock = _commitBlock;
         sessions[sessionId].revealBlock = uint32(block.number);
-        sessions[sessionId].data = _data;
+        sessions[sessionId].commitData = _commitData;
         sessions[sessionId].dappAddress = _dappAddress;
-        emit Revealed(sessionId, _commitValue, _data, _witness, _commitBlock, _commitIndex);
+        emit Revealed(sessionId, _commitValue, _commitData, _witness, _commitBlock, _commitIndex);
     }
 
     /**
@@ -263,15 +264,15 @@ contract LibSubmarine is ProvethVerifier {
      * @dev The dDapp is responsible for refunding the reveal deposit to the user (TODO: add user address parameter)
      * @param _sessionId Hash of the session instance representing the commit/reveal transaction
      */
-    function finalize(bytes32 _sessionId) public returns (uint256 commitValue, bytes memory data) {
+    function finalize(bytes32 _sessionId) public returns (uint256 commitValue, bytes memory commitData) {
         require(msg.sender == sessions[_sessionId].dappAddress, "The msg.sender does not match the dApp in the reveal tx");
         require(block.number > sessions[_sessionId].revealBlock.add(challengePeriodLength)
             && sessions[_sessionId].unlocked,
             "The challenge period is not over, the tx was not unlocked, or the session was slashed");
         commitValue = sessions[_sessionId].commitValue;
-        data = sessions[_sessionId].data;
+        commitData = sessions[_sessionId].commitData;
         sessions[_sessionId].dappAddress.transfer(commitValue.add(revealDepositAmount)); /* TODO: check if it is possible to return the deposit to the user directly */
-        emit Finalized(_sessionId, msg.sender, commitValue, revealDepositAmount, data);
+        emit Finalized(_sessionId, msg.sender, commitValue, revealDepositAmount, commitData);
         delete sessions[_sessionId];
     }
 }
