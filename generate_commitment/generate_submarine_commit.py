@@ -122,7 +122,9 @@ def generateAddressB(addressA, addressC, sendAmount, dappData, gasPrice, gasLimi
         addressB = tx.to_dict().get("sender")
         return tx, addressB, commit, randw
 
-    except InvalidTransaction as e:
+    except (ValueError, InvalidTransaction) as e:
+        if isinstance(e, ValueError) and "VRS" not in str(e):
+            raise
         log.info("Address no good (%s), retrying" % e)
         return generateAddressB(addressA, addressC, sendAmount, dappData, gasPrice, gasLimit, nonce, V)
 
