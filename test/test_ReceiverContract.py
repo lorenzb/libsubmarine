@@ -88,6 +88,8 @@ class TestLibSubmarine(unittest.TestCase):
         log.info("State: Starting A1 has {} and has address {}".format(
             self.chain.head_state.get_balance(rec_hex(t.a1)), rec_hex(t.a1)))
 
+        self.chain.mine(1)
+
         ##
         ## GENERATE UNLOCK AND BROADCAST TX, THEN BROADCAST COMMIT TX
         ##
@@ -105,8 +107,10 @@ class TestLibSubmarine(unittest.TestCase):
         log.info("Commit TX gas used: {}".format(
             str(commit_tx_object.intrinsic_gas_used)))
 
-        self.chain.mine(1)
         self.chain.direct_tx(commit_tx_object)
+
+        log.info("XXXXXXXXXXXXXXXXXXXXXXXXXXXX Commit() {}".format(self.chain.head_state.gas_used))
+        commitGas = self.chain.head_state.gas_used
         self.chain.mine(1)
 
         ##
@@ -133,8 +137,8 @@ class TestLibSubmarine(unittest.TestCase):
         self.verifier_contract.reveal(
             commitBlockNumber,
             commitBlockIndex,
-            DAPP_ADDRESS,
             UNLOCK_AMOUNT,
+            DAPP_ADDRESS,
             b'',
             rec_bin(witness),
             OURGASPRICE,
@@ -145,32 +149,32 @@ class TestLibSubmarine(unittest.TestCase):
             gasprice=OURGASPRICE,
             startgas=OURGASLIMIT)
 
-        revealTestSession = self.verifier_contract.getSession(rec_bin(commit))
-        log.info("Contract Session after Reveal: {}".format(
-            str(revealTestSession)))
+        log.info("XXXXXXXXXXXXXXXXXXXXXXXXXXXX Reveal() {}".format(self.chain.head_state.gas_used))
+        revealGas = self.chain.head_state.gas_used
+        self.chain.mine(1)
 
         ##
         ## CHECK STATE AFTER REVEAL TX
         ##
+        sessionData = self.verifier_contract.getSession(rec_bin(commit))
+        blockHash = self.verifier_contract.getBlockHash(commitBlockNumber)
+        hashedCommit = self.verifier_contract.getHashedCommit(
+            blockHash,
+            commitBlockNumber,
+            commitBlockIndex,
+            DAPP_ADDRESS,
+            b'')
+        log.info("Contract Session after Reveal: {}".format(sessionData))
         # Assert Session checks
         # todo make revealBlock check by instantiating transaction class so that
         # todo we can get the tx hash and look up the block instead of hard coding
         # todo based on the state of the testing jig, this isn't nicely portable
-        self.assertEqual(False, revealTestSession[0], "Session.unlocked wrong")
-        self.assertEqual(UNLOCK_AMOUNT, revealTestSession[1],
-                         "Session.commitValue wrong")
-        self.assertEqual(commitBlockIndex, revealTestSession[2],
-                         "Session.commitIndex wrong")
-        self.assertEqual(commitBlockNumber, revealTestSession[3],
-                         "Session.commitBlock wrong")
-        self.assertEqual(4, revealTestSession[4], "Session.revealBlock wrong")
-        self.assertEqual(b'', revealTestSession[5], "Session.data wrong")
-        self.assertEqual(
-            rec_hex(DAPP_ADDRESS), revealTestSession[6],
-            "Session.dappAddress wrong")
+        self.assertEqual(False, sessionData[0], "Session.unlocked wrong")
+        self.assertEqual(4, sessionData[1], "Session.revealBlock wrong")
+        self.assertEqual(UNLOCK_AMOUNT, sessionData[2], "Session.commitValue wrong")
+        self.assertEqual(hashedCommit, sessionData[3], "Session.hashedCommit wrong")
 
-        isfine, unlockAmount, unlockdata = self.verifier_contract.isFinalizable(
-            rec_bin(commit))
+        isfine = self.verifier_contract.isFinalizable(rec_bin(commit))
         self.assertFalse(isfine)
 
         ##
@@ -195,29 +199,32 @@ class TestLibSubmarine(unittest.TestCase):
             str(unlock_tx_object.intrinsic_gas_used)))
 
         self.chain.direct_tx(unlock_tx_object)
+
+        log.info("XXXXXXXXXXXXXXXXXXXXXXXXXXXX Unlock() {}".format(self.chain.head_state.gas_used))
+        unlockGas = self.chain.head_state.gas_used
         self.chain.mine(1)
 
         ##
         ## CHECK STATE AFTER UNLOCK
         ##
-        unlockTestSession = self.verifier_contract.getSession(rec_bin(commit))
-        log.info("Contract Session after Unlock: {}".format(unlockTestSession))
+        sessionData = self.verifier_contract.getSession(rec_bin(commit))
+        blockHash = self.verifier_contract.getBlockHash(commitBlockNumber)
+        hashedCommit = self.verifier_contract.getHashedCommit(
+            blockHash,
+            commitBlockNumber,
+            commitBlockIndex,
+            DAPP_ADDRESS,
+            b'')
+        log.info("Contract Session after Unlock: {}".format(sessionData))
+
         # Assert Session checks
         # todo make revealBlock check by instantiating transaction class so that
         # todo we can get the tx hash and look up the block instead of hard coding
         # todo based on the state of the testing jig, this isn't nicely portable
-        self.assertEqual(True, unlockTestSession[0], "Session.unlocked wrong")
-        self.assertEqual(UNLOCK_AMOUNT, revealTestSession[1],
-                         "Session.commitValue wrong")
-        self.assertEqual(commitBlockIndex, revealTestSession[2],
-                         "Session.commitIndex wrong")
-        self.assertEqual(commitBlockNumber, revealTestSession[3],
-                         "Session.commitBlock wrong")
-        self.assertEqual(4, revealTestSession[4], "Session.revealBlock wrong")
-        self.assertEqual(b'', revealTestSession[5], "Session.data wrong")
-        self.assertEqual(
-            rec_hex(DAPP_ADDRESS), revealTestSession[6],
-            "Session.dappAddress wrong")
+        self.assertEqual(True, sessionData[0], "Session.unlocked wrong")
+        self.assertEqual(4, sessionData[1], "Session.revealBlock wrong")
+        self.assertEqual(UNLOCK_AMOUNT, sessionData[2], "Session.commitValue wrong")
+        self.assertEqual(hashedCommit, sessionData[3], "Session.hashedCommit wrong")
 
         unlockBlockNumber, unlockBlockIndex = self.chain.chain.get_tx_position(
             unlock_tx_object)
@@ -225,11 +232,8 @@ class TestLibSubmarine(unittest.TestCase):
             unlockBlockNumber, unlockBlockIndex))
         self.chain.mine(CHALLENGE_PERIOD_LENGTH)
 
-        isfine, unlockAmount, unlockData = self.verifier_contract.isFinalizable(
-            rec_bin(commit))
+        isfine = self.verifier_contract.isFinalizable(rec_bin(commit))
         self.assertTrue(isfine)
-        self.assertEqual(UNLOCK_AMOUNT, unlockAmount)
-        self.assertEqual(b'', unlockData)
 
         log.info(
             "DAPP Address has balance {} and has address {} before unlock finalized".
@@ -245,12 +249,21 @@ class TestLibSubmarine(unittest.TestCase):
         ##
         finalizedAmount, finalizedData = self.verifier_contract.finalize(
             rec_bin(commit),
+            self.verifier_contract.getBlockHash(commitBlockNumber),
+            commitBlockNumber,
+            commitBlockIndex,
+            DAPP_ADDRESS,
+            b'',
             sender=DAPP_PRIVATE_KEY,
             to=self.verifier_contract.address,
             value=0,
             gasprice=OURGASPRICE,
             startgas=OURGASLIMIT)
+
+        log.info("XXXXXXXXXXXXXXXXXXXXXXXXXXXX Finalize() {}".format(self.chain.head_state.gas_used))
+        finalizeGas = self.chain.head_state.gas_used
         self.chain.mine(1)
+
         self.assertEqual(UNLOCK_AMOUNT, finalizedAmount)
         self.assertEqual(b'', finalizedData)
         log.info(self.chain.head_state.block_number)
@@ -271,6 +284,17 @@ class TestLibSubmarine(unittest.TestCase):
         self.assertGreater(
             1000000000000000000000000 + UNLOCK_AMOUNT,
             self.chain.head_state.get_balance(rec_hex(DAPP_ADDRESS)))
+
+        print("""
+    ***** Gas Used *****
+    Commit TX:     {}
+    Reveal TX:     {}
+    Unlock TX:     {}
+    Finalize TX:   {}
+
+    Total:        {}
+    ********************
+        """.format(commitGas,revealGas,unlockGas,finalizeGas,(commitGas+revealGas+unlockGas+finalizeGas)))
 
     def test_dishonest_party(self):
         ADDR_A = rec_hex(t.a1)
@@ -321,8 +345,8 @@ class TestLibSubmarine(unittest.TestCase):
         self.verifier_contract.reveal(
             fakecommitBlockNumber,
             fakecommitBlockIndex,
-            DAPP_ADDRESS,
             UNLOCK_AMOUNT,
+            DAPP_ADDRESS,
             b'',
             rec_bin(witness),
             OURGASPRICE,
@@ -345,16 +369,24 @@ class TestLibSubmarine(unittest.TestCase):
             rec_bin(witness), OURGASPRICE, OURGASLIMIT)
         log.info(fakeSessionId)
         fakeSession = self.verifier_contract.getSession(fakeSessionId)
+        fakeBlockHash = self.verifier_contract.getBlockHash(fakecommitBlockNumber)
+        fakeHashedCommit = self.verifier_contract.getHashedCommit(
+            fakeBlockHash,
+            fakecommitBlockNumber,
+            fakecommitBlockIndex,
+            DAPP_ADDRESS,
+            b'')
         log.info("Dishonest fake session " + str(fakeSession))
         self.assertListEqual(
             [
                 False,  # sesh.unlocked
-                1337000000000000000,  # sesh.commitValue,
-                1,  # sesh.commitIndex,
-                2,  # sesh.commitBlock,
                 3,  # sesh.revealBlock,
-                b'',  # sesh.data,
-                '0xdeadbeef000000000000000000000000deadbeef'  # sesh.dappAddress
+                1337000000000000000,  # sesh.commitValue,
+                fakeHashedCommit # sesh.hashedCommit
+                # 1,  # sesh.commitIndex,
+                # 2,  # sesh.commitBlock,
+                # b'',  # sesh.data,
+                # '0xdeadbeef000000000000000000000000deadbeef'  # sesh.dappAddress
             ],
             fakeSession,
             "Session State is wrong")
@@ -381,16 +413,24 @@ class TestLibSubmarine(unittest.TestCase):
         ## CHECK UNLOCKED STATE
         ##
         fakeSession = self.verifier_contract.getSession(fakeSessionId)
+        fakeBlockHash = self.verifier_contract.getBlockHash(fakecommitBlockNumber)
+        fakeHashedCommit = self.verifier_contract.getHashedCommit(
+            fakeBlockHash,
+            fakecommitBlockNumber,
+            fakecommitBlockIndex,
+            DAPP_ADDRESS,
+            b'')
         log.info("Dishonest fake session post unlock " + str(fakeSession))
         self.assertListEqual(
             [
                 True,  # sesh.unlocked
-                1337000000000000000,  # sesh.commitValue,
-                1,  # sesh.commitIndex,
-                2,  # sesh.commitBlock,
                 3,  # sesh.revealBlock,
-                b'',  # sesh.data,
-                '0xdeadbeef000000000000000000000000deadbeef'  # sesh.dappAddress
+                1337000000000000000,  # sesh.commitValue,
+                fakeHashedCommit # sesh.hashedCommit
+                # 1,  # sesh.commitIndex,
+                # 2,  # sesh.commitBlock,
+                # b'',  # sesh.data,
+                # '0xdeadbeef000000000000000000000000deadbeef'  # sesh.dappAddress
             ],
             fakeSession,
             "Session State is wrong")
