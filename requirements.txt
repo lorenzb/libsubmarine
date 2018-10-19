@@ -1,11 +1,14 @@
 asn1crypto==0.24.0
+certifi==2018.10.15
 cffi==1.11.5
+chardet==3.0.4
 coincurve==8.0.2
 cytoolz==0.9.0.1
 eth-hash==0.1.4
 eth-utils==1.0.3
 ethereum==2.3.2
 future==0.16.0
+idna==2.7
 pbkdf2==1.3
 py-ecc==1.4.3
 py-solc==3.1.0
@@ -15,7 +18,10 @@ pyethash==0.1.27
 pysha3==1.0.2
 PyYAML==3.13
 repoze.lru==0.7
+requests==2.19.1
 rlp==1.0.1
 scrypt==0.8.6
 semantic-version==2.6.0
 toolz==0.9.0
+trie==1.3.8
+urllib3==1.23
