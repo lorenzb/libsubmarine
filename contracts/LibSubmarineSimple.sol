@@ -1,7 +1,6 @@
 pragma solidity ^0.4.24;
 
 import "./SafeMath.sol";
-import "./SafeMath32.sol";
 import "./proveth/ProvethVerifier.sol";
 
 contract LibSubmarineSimple is ProvethVerifier {
@@ -33,12 +32,10 @@ contract LibSubmarineSimple is ProvethVerifier {
 
     mapping(bytes32 => CommitData) public commitData; // stored "session" state information
 
-    // A submarine send is considered "finished" when: revealed and unlocked are both true, and the amount for the unlock is greater than or equal to the reveal amount.
+    // A submarine send is considered "finished" when the amount revealed and unlocked are both greater than zero, and the amount for the unlock is greater than or equal to the reveal amount.
     struct CommitData {
-        bool revealed; // whether the submarine commitment for this commitData instance has been revealed yet. 
-        bool unlocked; // whether the submarine commitment for this commitData instance has been unlocked yet.
-        uint256 amountRevealed; // amount the reveal transaction revealed would be sent in wei.
-        uint256 amountUnlocked; // amount the unlock transaction recieved in wei.
+        uint128 amountRevealed; // amount the reveal transaction revealed would be sent in wei. When greater than zero, the submarine has been revealed.
+        uint128 amountUnlocked; // amount the unlock transaction recieved in wei. When greater than zero, the submarine has been unlocked; however the submarine may not be finished, until the unlock amount is GREATER than the promised revealed amount.
     }
     
     // Response from proveth Merkle Patricia Proof Struct
@@ -86,15 +83,11 @@ contract LibSubmarineSimple is ProvethVerifier {
     }
     
     function getCommitState(bytes32 _commitId) public view returns (
-        bool unlocked,
-        bool revealed,
-        uint256 amountRevealed,
-        uint256 amountUnlocked
+        uint128 amountRevealed,
+        uint128 amountUnlocked
     ) {
         CommitData memory sesh = commitData[_commitId];
         return (
-            sesh.revealed,
-            sesh.unlocked,
             sesh.amountRevealed,
             sesh.amountUnlocked
         );
@@ -119,7 +112,7 @@ contract LibSubmarineSimple is ProvethVerifier {
     function reveal(
         uint32 _commitBlockNumber,
         bytes _embeddedDAppData,
-        uint256 _unlockAmount,
+        uint128 _unlockAmount,
         bytes32 _witness,
         uint256 _unlockGasPrice,
         uint256 _unlockGasLimit,
@@ -139,7 +132,7 @@ contract LibSubmarineSimple is ProvethVerifier {
             _unlockGasLimit
         );
 
-        require(commitData[commitId].revealed == false, "The tx is already revealed");
+        require(commitData[commitId].amountRevealed == 0, "The tx is already revealed");
         require(commitBlockHash != 0x0, "Commit Block is too old to retreive block hash (more than 256 blocks), or does not exist");
         require(block.number.sub(_commitBlockNumber) > commitPeriodLength, "You must wait long enough to allow the committing period to end before revealing");
         ProvenTransaction memory proven_tx;
@@ -161,7 +154,6 @@ contract LibSubmarineSimple is ProvethVerifier {
         );
 
         require(keccak256(abi.encodePacked(proven_tx.to)) == keccak256(abi.encodePacked(submarine)), "The proven address should match the revealed address, or the txhash/witness is wrong.");
-        commitData[commitId].revealed = true;
         commitData[commitId].amountRevealed = _unlockAmount;
         emit Revealed(commitId, _unlockAmount, _witness, commitBlockHash, submarine);
     }
@@ -174,8 +166,7 @@ contract LibSubmarineSimple is ProvethVerifier {
     function unlock(bytes32 _commitId) public payable {
         // Required to prevent an attack where someone would unlock after an unlock had already happened, and try to overwrite the unlock amount.
         require(commitData[_commitId].amountUnlocked < msg.value, "You can never unlock less money than you've already unlocked.");
-        commitData[_commitId].amountUnlocked = msg.value;
-        commitData[_commitId].unlocked = true;
+        commitData[_commitId].amountUnlocked = uint128(msg.value); // right now, a uint128 is enough to store all of the ether/wei in existence. (i.e. 2^128 > 100,000,000 * 10**18)
         emit Unlocked(_commitId, msg.value);
     }
     
@@ -185,8 +176,8 @@ contract LibSubmarineSimple is ProvethVerifier {
      * @return bool whether the commit has a stored submarine send that has been completed for it (0 for failure / not yet finished, 1 for successful submarine TX)
      */
     function finished(bytes32 _commitId) public view returns(bool success) {
-        return commitData[_commitId].unlocked 
-            && commitData[_commitId].revealed 
+        return commitData[_commitId].amountUnlocked != 0
+            && commitData[_commitId].amountRevealed != 0
             && commitData[_commitId].amountUnlocked >= commitData[_commitId].amountRevealed;
     }
 
