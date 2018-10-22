@@ -7,8 +7,6 @@ import "./proveth/ProvethVerifier.sol";
 contract LibSubmarineSimple is ProvethVerifier {
 
     using SafeMath for uint256;
-    using SafeMath32 for uint32;
-
 
     ////////////
     // Events //
@@ -143,7 +141,7 @@ contract LibSubmarineSimple is ProvethVerifier {
 
         require(commitData[commitId].revealed == false, "The tx is already revealed");
         require(commitBlockHash != 0x0, "Commit Block is too old to retreive block hash (more than 256 blocks), or does not exist");
-        require(block.number - _commitBlockNumber > commitPeriodLength, "You must wait long enough to allow the committing period to end before revealing");
+        require(block.number.sub(_commitBlockNumber) > commitPeriodLength, "You must wait long enough to allow the committing period to end before revealing");
         ProvenTransaction memory proven_tx;
         // Commented out for theoretical gas savings
         (proven_tx.result, /* index */, proven_tx.nonce, /* gasprice */, /* startgas */, proven_tx.to, proven_tx.value, /* data */, /* v */ , /* r */, /* s */, proven_tx.is_contract_creation ) = txProof(commitBlockHash, _proofBlob);
