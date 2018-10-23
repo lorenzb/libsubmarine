@@ -5,7 +5,8 @@ import sys
 import unittest
 from ethereum import config, transactions
 from ethereum.tools import tester as t
-from ethereum.utils import checksum_encode, normalize_address, sha3
+from ethereum.utils import checksum_encode, normalize_address, sha3, ecrecover_to_pub
+from ethereum.exceptions import InvalidTransaction
 from test_utils import rec_hex, rec_bin, deploy_solidity_contract_with_args
 
 sys.path.append(
@@ -69,6 +70,57 @@ class TestLibSubmarineSimple(unittest.TestCase):
             startgas=10**7,
             args=[COMMIT_PERIOD_LENGTH])
 
+    def generateInvalidUnlockTx(self, userAddress, contractAddress, maliciousAddress):
+        commit, witness, R, S = generate_submarine_commit._generateRS(
+            normalize_address(rec_hex(userAddress)),
+            normalize_address(rec_hex(contractAddress)),
+            UNLOCK_AMOUNT, b'', OURGASPRICE, OURGASLIMIT)
+
+        unlockFunctionSelector = b"\xec\x9b\x5b\x3a"
+        submarineData = unlockFunctionSelector + commit
+
+        # need the unsigned TX hash for ECRecover
+        unlock_tx_unsigned_object = transactions.UnsignedTransaction(
+            0,                                                   # nonce;
+            OURGASPRICE,                                         # gasprice
+            OURGASLIMIT,                                         # startgas
+            normalize_address(maliciousAddress),                 # to addr
+            UNLOCK_AMOUNT,                                       # value
+            submarineData,                                       # data
+        )
+        unlock_tx_unsigned_hash = sha3(
+            rlp.encode(unlock_tx_unsigned_object,
+                  transactions.UnsignedTransaction))
+
+        unlock_tx_object = transactions.Transaction(
+            0,                                                   # nonce;
+            OURGASPRICE,                                         # gasprice
+            OURGASLIMIT,                                         # startgas
+            normalize_address(maliciousAddress),                 # to addr
+            UNLOCK_AMOUNT,                                       # value
+            submarineData,                                       # data
+            27,                                                  # v
+            R,                                                   # r 
+            S                                                    # s
+        )
+
+        try:
+            pub = ecrecover_to_pub(unlock_tx_unsigned_hash, 27, R, S)
+            if pub ==  b"\x00" * 64:
+                log.info("Address no good, retrying")
+                return self.generateInvalidUnlockTx(userAddress, contractAddress, maliciousAddress)
+            else:
+                commit_addr = sha3(pub)[-20:]
+                log.info("Fake Unlock TX Dict: {}".format(unlock_tx_unsigned_object.as_dict()))
+                log.info("Fake Unlock TX Commit B: {}".format(commit_addr))
+                return unlock_tx_object, unlock_tx_unsigned_object, commit_addr, commit, witness 
+
+        except (ValueError, InvalidTransaction) as e:
+            if isinstance(e, ValueError) and "VRS" not in str(e):
+                raise
+            log.info("Address no good (%s), retrying" % e)
+            return self.generateInvalidUnlockTx(userAddress, contractAddresss, maliciousAddress)
+
     def test_workflow(self):
         ##
         ## STARTING STATE
@@ -93,6 +145,8 @@ class TestLibSubmarineSimple(unittest.TestCase):
             UNLOCK_AMOUNT, b'', OURGASPRICE, OURGASLIMIT)
         log.info("Precomputed address of commit target: {}".format(addressB))
 
+        assert (isinstance(witness, str))
+
         unlock_tx_info = rlp.decode(rec_bin(unlock_tx_hex))
         log.info("Unlock tx hex object: {}".format(rec_hex(unlock_tx_info)))
 
@@ -108,6 +162,16 @@ class TestLibSubmarineSimple(unittest.TestCase):
             int.from_bytes(unlock_tx_info[8], byteorder="big")  # s
         )
         log.info("Unlock tx hash: {}".format(rec_hex(unlock_tx_object.hash)))
+        unlock_tx_unsigned_object = transactions.UnsignedTransaction(
+            int.from_bytes(unlock_tx_info[0], byteorder="big"),  # nonce;
+            int.from_bytes(unlock_tx_info[1], byteorder="big"),  # gasprice
+            int.from_bytes(unlock_tx_info[2], byteorder="big"),  # startgas
+            unlock_tx_info[3],  # to addr
+            int.from_bytes(unlock_tx_info[4], byteorder="big"),  # value
+            unlock_tx_info[5],  # data
+        )
+
+        unlock_tx_unsigned_rlp = rlp.encode(unlock_tx_unsigned_object, transactions.UnsignedTransaction)
 
         commit_tx_object = transactions.Transaction(
             0, OURGASPRICE, BASIC_SEND_GAS_LIMIT, rec_bin(addressB),
@@ -158,7 +222,6 @@ class TestLibSubmarineSimple(unittest.TestCase):
         ##
         ## GENERATE AND BROADCAST REVEAL TX
         ##
-        assert (isinstance(witness, str))
         commit_block_object = self.chain.chain.get_block_by_number(
             commit_block_number)
         log.info("Block information: {}".format(
@@ -220,27 +283,12 @@ class TestLibSubmarineSimple(unittest.TestCase):
         self.chain.head_state.log_listeners.append(_event_listener)
         _unlockExtraData = b''  # In this example we dont have any extra embedded data as part of the unlock TX
 
-        # need the unsigned TX hash for ECRecover in the reveal function
-        unlock_tx_unsigned_object = transactions.UnsignedTransaction(
-            nonce=unlock_tx_object['nonce'],
-            gasprice=unlock_tx_object['gasprice'],
-            startgas=unlock_tx_object['startgas'],
-            to=unlock_tx_object['to'],
-            value=unlock_tx_object['value'],
-            data=unlock_tx_object['data'])
-        unlock_tx_unsigned_hash = sha3(
-            rlp.encode(unlock_tx_unsigned_object,
-                       transactions.UnsignedTransaction))
-
         self.verifier_contract.reveal(
             #print(
             commit_block_number,  # uint32 _commitBlockNumber,
             _unlockExtraData,  # bytes _commitData,
-            UNLOCK_AMOUNT,  # uint256 _unlockAmount,
             rec_bin(witness),  # bytes32 _witness,
-            OURGASPRICE,  # uint256 _unlockGasPrice,
-            OURGASLIMIT,  # uint256 _unlockGasLimit,
-            unlock_tx_unsigned_hash,  # bytes32 _unlockTXHash,
+            unlock_tx_unsigned_rlp,  # bytes _rlpUnlockTxUnsigned,
             commit_proof_blob,  # bytes _proofBlob
             sender=ALICE_PRIVATE_KEY)
         log.info("Reveal TX Gas Used HeadState {}".format(
@@ -330,6 +378,18 @@ class TestLibSubmarineSimple(unittest.TestCase):
             int.from_bytes(unlock_tx_info[7], byteorder="big"),  # r
             int.from_bytes(unlock_tx_info[8], byteorder="big")  # s
         )
+        unlock_tx_unsigned_object = transactions.UnsignedTransaction(
+            int.from_bytes(unlock_tx_info[0], byteorder="big"),  # nonce;
+            int.from_bytes(unlock_tx_info[1], byteorder="big"),  # gasprice
+            int.from_bytes(unlock_tx_info[2], byteorder="big"),  # startgas
+            unlock_tx_info[3],  # to addr
+            int.from_bytes(unlock_tx_info[4], byteorder="big"),  # value
+            unlock_tx_info[5],  # data
+        )
+
+        unlock_tx_unsigned_rlp = rlp.encode(unlock_tx_unsigned_object, transactions.UnsignedTransaction)
+
+
 
 
         ##
@@ -435,28 +495,15 @@ class TestLibSubmarineSimple(unittest.TestCase):
         self.chain.head_state.log_listeners.append(_event_listener)
         _unlockExtraData = b''  # In this example we dont have any extra embedded data as part of the unlock TX
 
-        # need the unsigned TX hash for ECRecover in the reveal function
-        unlock_tx_unsigned_object = transactions.UnsignedTransaction(
-            nonce=unlock_tx_object['nonce'],
-            gasprice=unlock_tx_object['gasprice'],
-            startgas=unlock_tx_object['startgas'],
-            to=unlock_tx_object['to'],
-            value=unlock_tx_object['value'],
-            data=unlock_tx_object['data'])
-        unlock_tx_unsigned_hash = sha3(
-            rlp.encode(unlock_tx_unsigned_object,
-                       transactions.UnsignedTransaction))
-
         self.verifier_contract.reveal(
+            #print(
             commit_block_number,  # uint32 _commitBlockNumber,
             _unlockExtraData,  # bytes _commitData,
-            UNLOCK_AMOUNT,  # uint256 _unlockAmount,
             rec_bin(witness),  # bytes32 _witness,
-            OURGASPRICE,  # uint256 _unlockGasPrice,
-            OURGASLIMIT,  # uint256 _unlockGasLimit,
-            unlock_tx_unsigned_hash,  # bytes32 _unlockTXHash,
+            unlock_tx_unsigned_rlp,  # bytes _rlpUnlockTxUnsigned,
             commit_proof_blob,  # bytes _proofBlob
             sender=ALICE_PRIVATE_KEY)
+
         log.info("Reveal TX Gas Used HeadState {}".format(
             self.chain.head_state.gas_used))
         reveal_gas = int(self.chain.head_state.gas_used)
@@ -511,7 +558,16 @@ class TestLibSubmarineSimple(unittest.TestCase):
             int.from_bytes(unlock_tx_info[7], byteorder="big"),  # r
             int.from_bytes(unlock_tx_info[8], byteorder="big")   # s
         )
+        unlock_tx_unsigned_object = transactions.UnsignedTransaction(
+            int.from_bytes(unlock_tx_info[0], byteorder="big"),  # nonce;
+            int.from_bytes(unlock_tx_info[1], byteorder="big"),  # gasprice
+            int.from_bytes(unlock_tx_info[2], byteorder="big"),  # startgas
+            unlock_tx_info[3],  # to addr
+            int.from_bytes(unlock_tx_info[4], byteorder="big"),  # value
+            unlock_tx_info[5],  # data
+        )
 
+        unlock_tx_unsigned_rlp = rlp.encode(unlock_tx_unsigned_object, transactions.UnsignedTransaction)
         ##
         ## SPAM THE UNLOCK FUNCTION
         ##
@@ -632,28 +688,15 @@ class TestLibSubmarineSimple(unittest.TestCase):
         self.chain.head_state.log_listeners.append(_event_listener)
         _unlockExtraData = b''  # In this example we dont have any extra embedded data as part of the unlock TX
 
-        # need the unsigned TX hash for ECRecover in the reveal function
-        unlock_tx_unsigned_object = transactions.UnsignedTransaction(
-            nonce=unlock_tx_object['nonce'],
-            gasprice=unlock_tx_object['gasprice'],
-            startgas=unlock_tx_object['startgas'],
-            to=unlock_tx_object['to'],
-            value=unlock_tx_object['value'],
-            data=unlock_tx_object['data'])
-        unlock_tx_unsigned_hash = sha3(
-            rlp.encode(unlock_tx_unsigned_object,
-                       transactions.UnsignedTransaction))
-
         self.verifier_contract.reveal(
+            #print(
             commit_block_number,  # uint32 _commitBlockNumber,
             _unlockExtraData,  # bytes _commitData,
-            UNLOCK_AMOUNT,  # uint256 _unlockAmount,
             rec_bin(witness),  # bytes32 _witness,
-            OURGASPRICE,  # uint256 _unlockGasPrice,
-            OURGASLIMIT,  # uint256 _unlockGasLimit,
-            unlock_tx_unsigned_hash,  # bytes32 _unlockTXHash,
+            unlock_tx_unsigned_rlp,  # bytes _rlpUnlockTxUnsigned,
             commit_proof_blob,  # bytes _proofBlob
             sender=ALICE_PRIVATE_KEY)
+
         log.info("Reveal TX Gas Used HeadState {}".format(
             self.chain.head_state.gas_used))
         reveal_gas = int(self.chain.head_state.gas_used)
@@ -708,6 +751,18 @@ class TestLibSubmarineSimple(unittest.TestCase):
             int.from_bytes(unlock_tx_info[7], byteorder="big"),  # r
             int.from_bytes(unlock_tx_info[8], byteorder="big")   # s
         )
+        unlock_tx_unsigned_object = transactions.UnsignedTransaction(
+            int.from_bytes(unlock_tx_info[0], byteorder="big"),  # nonce;
+            int.from_bytes(unlock_tx_info[1], byteorder="big"),  # gasprice
+            int.from_bytes(unlock_tx_info[2], byteorder="big"),  # startgas
+            unlock_tx_info[3],  # to addr
+            int.from_bytes(unlock_tx_info[4], byteorder="big"),  # value
+            unlock_tx_info[5],  # data
+        )
+
+        unlock_tx_unsigned_rlp = rlp.encode(unlock_tx_unsigned_object, transactions.UnsignedTransaction)
+
+
 
         ##
         ## SPAM THE UNLOCK FUNCTION
@@ -829,28 +884,15 @@ class TestLibSubmarineSimple(unittest.TestCase):
         self.chain.head_state.log_listeners.append(_event_listener)
         _unlockExtraData = b''  # In this example we dont have any extra embedded data as part of the unlock TX
 
-        # need the unsigned TX hash for ECRecover in the reveal function
-        unlock_tx_unsigned_object = transactions.UnsignedTransaction(
-            nonce=unlock_tx_object['nonce'],
-            gasprice=unlock_tx_object['gasprice'],
-            startgas=unlock_tx_object['startgas'],
-            to=unlock_tx_object['to'],
-            value=unlock_tx_object['value'],
-            data=unlock_tx_object['data'])
-        unlock_tx_unsigned_hash = sha3(
-            rlp.encode(unlock_tx_unsigned_object,
-                       transactions.UnsignedTransaction))
-
         self.verifier_contract.reveal(
+            #print(
             commit_block_number,  # uint32 _commitBlockNumber,
             _unlockExtraData,  # bytes _commitData,
-            UNLOCK_AMOUNT,  # uint256 _unlockAmount,
             rec_bin(witness),  # bytes32 _witness,
-            OURGASPRICE,  # uint256 _unlockGasPrice,
-            OURGASLIMIT,  # uint256 _unlockGasLimit,
-            unlock_tx_unsigned_hash,  # bytes32 _unlockTXHash,
+            unlock_tx_unsigned_rlp,  # bytes _rlpUnlockTxUnsigned,
             commit_proof_blob,  # bytes _proofBlob
             sender=ALICE_PRIVATE_KEY)
+
         log.info("Reveal TX Gas Used HeadState {}".format(
             self.chain.head_state.gas_used))
         reveal_gas = int(self.chain.head_state.gas_used)
@@ -871,6 +913,142 @@ class TestLibSubmarineSimple(unittest.TestCase):
             "The contract was unlocked first and then revealed, it should be finished"
         )
 
+    def test_fake_unlock_commit_does_not_match_to_address(self):
+        ##
+        ## STARTING STATE
+        ##
+        ALICE_ADDRESS = t.a1
+        ALICE_PRIVATE_KEY = t.k1
+        MALICIOUS_ADDRESS = t.a7
+
+        self.chain.mine(1)
+
+        ##
+        ## GENERATE FAKE UNLOCK TX
+        ##
+        unlock_tx_object, unlock_tx_unsigned_object, commit_addr, commit, witness = self.generateInvalidUnlockTx(ALICE_ADDRESS, self.verifier_contract.address, MALICIOUS_ADDRESS)
+        unlock_tx_unsigned_rlp = rlp.encode(unlock_tx_unsigned_object, transactions.UnsignedTransaction)
+        
+        ##
+        ## GENERATE COMMIT
+        ##
+        commit_tx_object = transactions.Transaction(
+            0, OURGASPRICE, BASIC_SEND_GAS_LIMIT, commit_addr,
+            (UNLOCK_AMOUNT + extraTransactionFees),
+            b'').sign(ALICE_PRIVATE_KEY)
+
+        self.chain.direct_tx(commit_tx_object)
+
+        self.chain.mine(4)
+
+        commit_block_number, commit_block_index = self.chain.chain.get_tx_position(commit_tx_object)
+        log.info("Commit Tx block number {} and tx block index {}".format(
+            commit_block_number, commit_block_index))
+        log.info("State: After commit A1 has {} and has address {}".format(
+            self.chain.head_state.get_balance(rec_hex(ALICE_ADDRESS)),
+            rec_hex(ALICE_ADDRESS)))
+        log.info("State: After commit B has {} and has address {}".format(
+            self.chain.head_state.get_balance(commit_addr), commit_addr))
+        log.info("State: After commit C has {} and has address {}".format(
+            self.chain.head_state.get_balance(MALICIOUS_ADDRESS), MALICIOUS_ADDRESS))
+        afterCommitCommitAddressAmount = UNLOCK_AMOUNT + extraTransactionFees
+        afterCommitAliceAddressAmount = ACCOUNT_STARTING_BALANCE - (UNLOCK_AMOUNT + extraTransactionFees + BASIC_SEND_GAS_LIMIT * OURGASPRICE)
+        self.assertEqual(afterCommitCommitAddressAmount,
+                         self.chain.head_state.get_balance(commit_addr))
+        self.assertEqual(afterCommitAliceAddressAmount,
+            self.chain.head_state.get_balance(rec_hex(ALICE_ADDRESS)))
+
+        ##
+        ## GENERATE AND BROADCAST REVEAL TX
+        ##
+        commit_block_object = self.chain.chain.get_block_by_number(
+            commit_block_number)
+        log.info("Block information: {}".format(
+            str(commit_block_object.as_dict())))
+        log.info("Block header: {}".format(
+            str(commit_block_object.as_dict()['header'].as_dict())))
+        log.info("Block transactions: {}".format(
+            str(commit_block_object.as_dict()['transactions'][0].as_dict())))
+
+        proveth_expected_block_format_dict = dict()
+        proveth_expected_block_format_dict['parentHash'] = commit_block_object['prevhash']
+        proveth_expected_block_format_dict['sha3Uncles'] = commit_block_object['uncles_hash']
+        proveth_expected_block_format_dict['miner'] = commit_block_object['coinbase']
+        proveth_expected_block_format_dict['stateRoot'] = commit_block_object['state_root']
+        proveth_expected_block_format_dict['transactionsRoot'] = commit_block_object['tx_list_root']
+        proveth_expected_block_format_dict['receiptsRoot'] = commit_block_object['receipts_root']
+        proveth_expected_block_format_dict['logsBloom'] = commit_block_object['bloom']
+        proveth_expected_block_format_dict['difficulty'] = commit_block_object['difficulty']
+        proveth_expected_block_format_dict['number'] = commit_block_object['number']
+        proveth_expected_block_format_dict['gasLimit'] = commit_block_object['gas_limit']
+        proveth_expected_block_format_dict['gasUsed'] = commit_block_object['gas_used']
+        proveth_expected_block_format_dict['timestamp'] = commit_block_object['timestamp']
+        proveth_expected_block_format_dict['extraData'] = commit_block_object['extra_data']
+        proveth_expected_block_format_dict['mixHash'] = commit_block_object['mixhash']
+        proveth_expected_block_format_dict['nonce'] = commit_block_object['nonce']
+        proveth_expected_block_format_dict['hash'] = commit_block_object.hash
+        proveth_expected_block_format_dict['uncles'] = []
+
+        # remember kids, when in doubt, rec_hex EVERYTHING
+        proveth_expected_block_format_dict['transactions'] = ({
+            "blockHash":          commit_block_object.hash,
+            "blockNumber":        str(hex((commit_block_object['number']))),
+            "from":               checksum_encode(ALICE_ADDRESS),
+            "gas":                str(hex(commit_tx_object['startgas'])),
+            "gasPrice":           str(hex(commit_tx_object['gasprice'])),
+            "hash":               rec_hex(commit_tx_object['hash']),
+            "input":              rec_hex(commit_tx_object['data']),
+            "nonce":              str(hex(commit_tx_object['nonce'])),
+            "to":                 checksum_encode(commit_tx_object['to']),
+            "transactionIndex":   str(hex(0)),
+            "value":              str(hex(commit_tx_object['value'])),
+            "v":                  str(hex(commit_tx_object['v'])),
+            "r":                  str(hex(commit_tx_object['r'])),
+            "s":                  str(hex(commit_tx_object['s']))
+        }, )
+
+        #log.info(proveth_expected_block_format_dict['transactions'])
+        commit_proof_blob = proveth.generate_proof_blob(
+            proveth_expected_block_format_dict, commit_block_index)
+        log.info("Proof Blob generate by proveth.py: {}".format(
+            rec_hex(commit_proof_blob)))
+
+        # Solidity Event log listener
+        def _event_listener(llog):
+            log.info('Solidity Event listener log fire: {}'.format(str(llog)))
+            log.info('Solidity Event listener log fire hex: {}'.format(
+                str(rec_hex(llog['data']))))
+
+        self.chain.head_state.log_listeners.append(_event_listener)
+        _unlockExtraData = b''  # In this example we dont have any extra embedded data as part of the unlock TX
+
+
+        self.chain.direct_tx(unlock_tx_object)
+
+        log.info("State: After unlock A1 has {} and has address {}".format(
+            self.chain.head_state.get_balance(rec_hex(ALICE_ADDRESS)),
+            rec_hex(ALICE_ADDRESS)))
+        log.info("State: After unlock B has {} and has address {}".format(
+            self.chain.head_state.get_balance(commit_addr), commit_addr))
+        log.info("State: After unlock C has {} and has address {}".format(
+            self.chain.head_state.get_balance(MALICIOUS_ADDRESS), MALICIOUS_ADDRESS))
+        self.assertLess(self.chain.head_state.get_balance(commit_addr), afterCommitCommitAddressAmount)
+        self.assertGreater(self.chain.head_state.get_balance(rec_hex(MALICIOUS_ADDRESS)), ACCOUNT_STARTING_BALANCE)
+        
+        ##
+        ## THE REVEAL SHOULD NOW FAIL
+        ##
+        self.assertRaises(
+            t.TransactionFailed, 
+            self.verifier_contract.reveal,
+        # self.verifier_contract.reveal(
+            commit_block_number,  # uint32 _commitBlockNumber,
+            _unlockExtraData,  # bytes _commitData,
+            witness,  # bytes32 _witness,
+            unlock_tx_unsigned_rlp,  # bytes _rlpUnlockTxUnsigned,
+            commit_proof_blob,  # bytes _proofBlob
+            sender=ALICE_PRIVATE_KEY
+        )
 
 if __name__ == "__main__":
     unittest.main()

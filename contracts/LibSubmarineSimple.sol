@@ -2,6 +2,7 @@ pragma solidity ^0.4.24;
 
 import "./SafeMath.sol";
 import "./proveth/ProvethVerifier.sol";
+import "./proveth/RLP.sol"; // probably can remove this line, since ProvethVerifier also imports RLP.sol
 
 contract LibSubmarineSimple is ProvethVerifier {
 
@@ -36,22 +37,6 @@ contract LibSubmarineSimple is ProvethVerifier {
     struct CommitData {
         uint128 amountRevealed; // amount the reveal transaction revealed would be sent in wei. When greater than zero, the submarine has been revealed.
         uint128 amountUnlocked; // amount the unlock transaction recieved in wei. When greater than zero, the submarine has been unlocked; however the submarine may not be finished, until the unlock amount is GREATER than the promised revealed amount.
-    }
-    
-    // Response from proveth Merkle Patricia Proof Struct
-    struct ProvenTransaction{
-        uint8 result;
-        uint256 index;
-        uint256 nonce;
-        uint256 gasprice;
-        uint256 startgas;
-        address to;
-        uint256 value;
-        bytes data;
-        uint256 v;
-        uint256 r;
-        uint256 s;
-        bool is_contract_creation;
     }
 
     /**
@@ -101,61 +86,63 @@ contract LibSubmarineSimple is ProvethVerifier {
      * @notice Function called by the user to reveal the session.
      * @dev warning Must be called within 256 blocks of the commit transaction to obtain the correct blockhash.
      * @param _commitBlockNumber Block number in which the commit tx was included.
-     * @param _unlockAmount Value (i.e. how much money was sent) included in the commit tx.
      * @param _embeddedDAppData optional Data passed embedded within the unlock tx. This should probably be null
      * @param _witness Witness "secret" we committed to
-     * @param _unlockGasPrice Gas price of the unlock TX
-     * @param _unlockGasLimit Gas limit of the unlock TX
-     * @param _unlockTXHash full hash of the signed unlock transaction
+     * @param _rlpUnlockTxUnsigned RLP encoded unsigned unlock transaction
      * @param _proofBlob the Proof blob that gets passed to ethprove to verify merkle tree inclusion in a prior block.
      */
     function reveal(
         uint32 _commitBlockNumber,
         bytes _embeddedDAppData,
-        uint128 _unlockAmount,
         bytes32 _witness,
-        uint256 _unlockGasPrice,
-        uint256 _unlockGasLimit,
-        bytes32 _unlockTXHash,
+        bytes _rlpUnlockTxUnsigned,
         bytes _proofBlob
     ) public {
         bytes32 commitBlockHash = blockhash(_commitBlockNumber);
-        // fullCommit = (addressA + addressC + aux(sendAmount) + dappData + w + aux(gasPrice) + aux(gasLimit))
+        require(commitBlockHash != 0x0, "Commit Block is too old to retreive block hash (more than 256 blocks), or does not exist");
+        require(block.number.sub(_commitBlockNumber) > commitPeriodLength, "You must wait long enough to allow the committing period to end before revealing");
+        
+        UnsignedTransaction memory unsignedUnlockTx = decodeUnsignedTx(_rlpUnlockTxUnsigned);
+        bytes32 unsignedUnlockTxHash = keccak256(_rlpUnlockTxUnsigned);
 
+        require(unsignedUnlockTx.nonce == 0);
+        require(unsignedUnlockTx.to == address(this));
+
+        // fullCommit = (addressA + addressC + aux(sendAmount) + dappData + w + aux(gasPrice) + aux(gasLimit))
         bytes32 commitId = getCommitId(
             msg.sender,
             address(this),
-            _unlockAmount,
+            unsignedUnlockTx.value,
             _embeddedDAppData,
             _witness,
-            _unlockGasPrice,
-            _unlockGasLimit
+            unsignedUnlockTx.gasprice,
+            unsignedUnlockTx.startgas
         );
 
         require(commitData[commitId].amountRevealed == 0, "The tx is already revealed");
-        require(commitBlockHash != 0x0, "Commit Block is too old to retreive block hash (more than 256 blocks), or does not exist");
-        require(block.number.sub(_commitBlockNumber) > commitPeriodLength, "You must wait long enough to allow the committing period to end before revealing");
-        ProvenTransaction memory proven_tx;
-        // Commented out for theoretical gas savings
-        (proven_tx.result, /* index */, proven_tx.nonce, /* gasprice */, /* startgas */, proven_tx.to, proven_tx.value, /* data */, /* v */ , /* r */, /* s */, proven_tx.is_contract_creation ) = txProof(commitBlockHash, _proofBlob);
+
+        Transaction memory provenCommitTx;
+        uint8 provenCommitTxResultValid;
+        (provenCommitTxResultValid, /* index */, provenCommitTx.nonce, /* gasprice */, /* startgas */, provenCommitTx.to, provenCommitTx.value, provenCommitTx.data, /* v */ , /* r */, /* s */, provenCommitTx.isContractCreation ) = txProof(commitBlockHash, _proofBlob);
 
         // TX_PROOF_RESULT_PRESENT = 1;
         // TX_PROOF_RESULT_ABSENT = 2;
-        require(proven_tx.result == 1, "The proof is invalid");
-        require(proven_tx.value >= _unlockAmount);
-        require(proven_tx.nonce == 0);
-        require(proven_tx.is_contract_creation == false);
+        require(provenCommitTxResultValid == 1, "The proof is invalid");
+        require(provenCommitTx.value >= unsignedUnlockTx.value);
+        require(provenCommitTx.isContractCreation == false);
+        require(provenCommitTx.data.length == 0);
 
         address submarine = ecrecover(
-            _unlockTXHash,
+            unsignedUnlockTxHash,
             vee,
             keccak256(abi.encodePacked(commitId, byte(1))),
             keccak256(abi.encodePacked(commitId, byte(0)))
         );
 
-        require(keccak256(abi.encodePacked(proven_tx.to)) == keccak256(abi.encodePacked(submarine)), "The proven address should match the revealed address, or the txhash/witness is wrong.");
-        commitData[commitId].amountRevealed = _unlockAmount;
-        emit Revealed(commitId, _unlockAmount, _witness, commitBlockHash, submarine);
+        require(keccak256(abi.encodePacked(provenCommitTx.to)) == keccak256(abi.encodePacked(submarine)), "The proven address should match the revealed address, or the txhash/witness is wrong.");
+        require(provenCommitTx.to == submarine, "The proven address should match the revealed address, or the txhash/witness is wrong.");
+        commitData[commitId].amountRevealed = uint128(unsignedUnlockTx.value);
+        emit Revealed(commitId, unsignedUnlockTx.value, _witness, commitBlockHash, submarine); 
     }
     
     /**
