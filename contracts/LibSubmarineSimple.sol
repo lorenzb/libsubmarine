@@ -121,7 +121,7 @@ contract LibSubmarineSimple is ProvethVerifier {
 
         require(commitData[commitId].amountRevealed == 0, "The tx is already revealed");
 
-        Transaction memory provenCommitTx;
+        SignedTransaction memory provenCommitTx;
         uint8 provenCommitTxResultValid;
         (provenCommitTxResultValid, /* index */, provenCommitTx.nonce, /* gasprice */, /* startgas */, provenCommitTx.to, provenCommitTx.value, provenCommitTx.data, /* v */ , /* r */, /* s */, provenCommitTx.isContractCreation ) = txProof(commitBlockHash, _proofBlob);
 
