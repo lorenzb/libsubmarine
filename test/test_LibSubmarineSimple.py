@@ -7,7 +7,7 @@ from ethereum import config, transactions
 from ethereum.tools import tester as t
 from ethereum.utils import checksum_encode, normalize_address, sha3, ecrecover_to_pub
 from ethereum.exceptions import InvalidTransaction
-from test_utils import rec_hex, rec_bin, deploy_solidity_contract_with_args
+from test_utils import rec_hex, rec_bin, deploy_solidity_contract
 
 sys.path.append(
     os.path.join(os.path.dirname(__file__), '..', 'generate_commitment'))
@@ -45,7 +45,7 @@ class TestLibSubmarineSimple(unittest.TestCase):
             os.path.join(root_repo_dir, 'contracts/'))
         os.chdir(root_repo_dir)
 
-        self.verifier_contract = deploy_solidity_contract_with_args(
+        self.verifier_contract = deploy_solidity_contract(
             chain=self.chain,
             solc_config_sources={
                 'LibSubmarineSimple.sol': {
@@ -68,8 +68,7 @@ class TestLibSubmarineSimple(unittest.TestCase):
             allow_paths=root_repo_dir,
             contract_file='LibSubmarineSimple.sol',
             contract_name='LibSubmarineSimple',
-            startgas=10**7,
-            args=[COMMIT_PERIOD_LENGTH])
+            startgas=10**7)
 
     def generateInvalidUnlockTx(self, userAddress, contractAddress, maliciousAddress):
         commit, witness, R, S = generate_submarine_commit._generateRS(
@@ -187,8 +186,8 @@ class TestLibSubmarineSimple(unittest.TestCase):
         self.chain.direct_tx(commit_tx_object)
         log.info("Commit TX Gas Used HeadState {}".format(
             self.chain.head_state.gas_used))
+        self.chain.mine(1)
 
-        self.chain.mine(4)
 
         ##
         ## CHECK STATE AFTER COMMIT TX
@@ -284,6 +283,7 @@ class TestLibSubmarineSimple(unittest.TestCase):
         self.chain.head_state.log_listeners.append(_event_listener)
         _unlockExtraData = b''  # In this example we dont have any extra embedded data as part of the unlock TX
 
+        self.chain.mine(20)
         self.verifier_contract.reveal(
             #print(
             commit_block_number,  # uint32 _commitBlockNumber,
@@ -496,6 +496,7 @@ class TestLibSubmarineSimple(unittest.TestCase):
         self.chain.head_state.log_listeners.append(_event_listener)
         _unlockExtraData = b''  # In this example we dont have any extra embedded data as part of the unlock TX
 
+        self.chain.mine(20)
         self.verifier_contract.reveal(
             #print(
             commit_block_number,  # uint32 _commitBlockNumber,
@@ -689,6 +690,7 @@ class TestLibSubmarineSimple(unittest.TestCase):
         self.chain.head_state.log_listeners.append(_event_listener)
         _unlockExtraData = b''  # In this example we dont have any extra embedded data as part of the unlock TX
 
+        self.chain.mine(20)
         self.verifier_contract.reveal(
             #print(
             commit_block_number,  # uint32 _commitBlockNumber,
@@ -885,6 +887,7 @@ class TestLibSubmarineSimple(unittest.TestCase):
         self.chain.head_state.log_listeners.append(_event_listener)
         _unlockExtraData = b''  # In this example we dont have any extra embedded data as part of the unlock TX
 
+        self.chain.mine(20)
         self.verifier_contract.reveal(
             #print(
             commit_block_number,  # uint32 _commitBlockNumber,
@@ -1036,6 +1039,7 @@ class TestLibSubmarineSimple(unittest.TestCase):
         self.assertLess(self.chain.head_state.get_balance(commit_addr), afterCommitCommitAddressAmount)
         self.assertGreater(self.chain.head_state.get_balance(rec_hex(MALICIOUS_ADDRESS)), ACCOUNT_STARTING_BALANCE)
 
+        self.chain.mine(20)
         ##
         ## THE REVEAL SHOULD NOW FAIL
         ##
