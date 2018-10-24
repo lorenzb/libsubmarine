@@ -100,7 +100,7 @@ class TestLibSubmarineSimple(unittest.TestCase):
             UNLOCK_AMOUNT,                                       # value
             submarineData,                                       # data
             27,                                                  # v
-            R,                                                   # r 
+            R,                                                   # r
             S                                                    # s
         )
 
@@ -113,7 +113,7 @@ class TestLibSubmarineSimple(unittest.TestCase):
                 commit_addr = sha3(pub)[-20:]
                 log.info("Fake Unlock TX Dict: {}".format(unlock_tx_unsigned_object.as_dict()))
                 log.info("Fake Unlock TX Commit B: {}".format(commit_addr))
-                return unlock_tx_object, unlock_tx_unsigned_object, commit_addr, commit, witness 
+                return unlock_tx_object, unlock_tx_unsigned_object, commit_addr, commit, witness
 
         except (ValueError, InvalidTransaction) as e:
             if isinstance(e, ValueError) and "VRS" not in str(e):
@@ -928,7 +928,7 @@ class TestLibSubmarineSimple(unittest.TestCase):
         ##
         unlock_tx_object, unlock_tx_unsigned_object, commit_addr, commit, witness = self.generateInvalidUnlockTx(ALICE_ADDRESS, self.verifier_contract.address, MALICIOUS_ADDRESS)
         unlock_tx_unsigned_rlp = rlp.encode(unlock_tx_unsigned_object, transactions.UnsignedTransaction)
-        
+
         ##
         ## GENERATE COMMIT
         ##
@@ -1034,12 +1034,12 @@ class TestLibSubmarineSimple(unittest.TestCase):
             self.chain.head_state.get_balance(MALICIOUS_ADDRESS), MALICIOUS_ADDRESS))
         self.assertLess(self.chain.head_state.get_balance(commit_addr), afterCommitCommitAddressAmount)
         self.assertGreater(self.chain.head_state.get_balance(rec_hex(MALICIOUS_ADDRESS)), ACCOUNT_STARTING_BALANCE)
-        
+
         ##
         ## THE REVEAL SHOULD NOW FAIL
         ##
         self.assertRaises(
-            t.TransactionFailed, 
+            t.TransactionFailed,
             self.verifier_contract.reveal,
         # self.verifier_contract.reveal(
             commit_block_number,  # uint32 _commitBlockNumber,
