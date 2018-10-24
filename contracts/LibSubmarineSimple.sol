@@ -66,7 +66,7 @@ contract LibSubmarineSimple is ProvethVerifier {
     ) public pure returns (bytes32) {
         return keccak256(abi.encodePacked(_user, _libsubmarine, _commitValue, _embeddedDAppData, _witness, _gasPrice, _gasLimit));
     }
-    
+
     function getCommitState(bytes32 _commitId) public view returns (
         uint128 amountRevealed,
         uint128 amountUnlocked
@@ -101,7 +101,7 @@ contract LibSubmarineSimple is ProvethVerifier {
         bytes32 commitBlockHash = blockhash(_commitBlockNumber);
         require(commitBlockHash != 0x0, "Commit Block is too old to retreive block hash (more than 256 blocks), or does not exist");
         require(block.number.sub(_commitBlockNumber) > commitPeriodLength, "You must wait long enough to allow the committing period to end before revealing");
-        
+
         UnsignedTransaction memory unsignedUnlockTx = decodeUnsignedTx(_rlpUnlockTxUnsigned);
         bytes32 unsignedUnlockTxHash = keccak256(_rlpUnlockTxUnsigned);
 
@@ -142,12 +142,12 @@ contract LibSubmarineSimple is ProvethVerifier {
         require(keccak256(abi.encodePacked(provenCommitTx.to)) == keccak256(abi.encodePacked(submarine)), "The proven address should match the revealed address, or the txhash/witness is wrong.");
         require(provenCommitTx.to == submarine, "The proven address should match the revealed address, or the txhash/witness is wrong.");
         commitData[commitId].amountRevealed = uint128(unsignedUnlockTx.value);
-        emit Revealed(commitId, unsignedUnlockTx.value, _witness, commitBlockHash, submarine); 
+        emit Revealed(commitId, unsignedUnlockTx.value, _witness, commitBlockHash, submarine);
     }
-    
+
     /**
      * @notice Function called by the submarine address to unlock the session.
-     * @dev warning this function does NO validation whatsoever. ALL validation is done in the reveal. 
+     * @dev warning this function does NO validation whatsoever. ALL validation is done in the reveal.
      * @param _commitId committed data; The commit instance representing the commit/reveal transaction
      */
     function unlock(bytes32 _commitId) public payable {
@@ -156,7 +156,7 @@ contract LibSubmarineSimple is ProvethVerifier {
         commitData[_commitId].amountUnlocked = uint128(msg.value); // right now, a uint128 is enough to store all of the ether/wei in existence. (i.e. 2^128 > 100,000,000 * 10**18)
         emit Unlocked(_commitId, msg.value);
     }
-    
+
     /**
      * @notice Finished function can be called to determine if a submarine send transaction has been successfully completed for a given committed
      * @param _commitId committed data; The commit instance representing the commit/reveal transaction
