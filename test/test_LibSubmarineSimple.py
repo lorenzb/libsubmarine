@@ -119,7 +119,7 @@ class TestLibSubmarineSimple(unittest.TestCase):
             if isinstance(e, ValueError) and "VRS" not in str(e):
                 raise
             log.info("Address no good (%s), retrying" % e)
-            return self.generateInvalidUnlockTx(userAddress, contractAddresss, maliciousAddress)
+            return self.generateInvalidUnlockTx(userAddress, contractAddress, maliciousAddress)
 
     def test_workflow(self):
         ##
