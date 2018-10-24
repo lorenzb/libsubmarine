@@ -14,11 +14,11 @@ contract LibSubmarineSimple is ProvethVerifier {
 
     event Unlocked(
         bytes32 indexed _commitId,
-        uint256 _commitValue
+        uint96 _commitValue
     );
     event Revealed(
         bytes32 indexed _commitId,
-        uint256 _commitValue,
+        uint96 _commitValue,
         bytes32 _witness,
         bytes32 _commitBlockHash,
         address submarineAddr
@@ -29,21 +29,23 @@ contract LibSubmarineSimple is ProvethVerifier {
     /////////////
 
     uint8 public vee = 27; // the ECDSA v parameter: 27 allows us to be broadcast on any network (i.e. mainnet, ropsten, rinkeby etc.)
-    uint32 public commitPeriodLength; // How many blocks must a submarine be committed for before being revealed
+    uint8 public commitPeriodLength; // How many blocks must a submarine be committed for before being revealed
 
     mapping(bytes32 => CommitData) public commitData; // stored "session" state information
 
     // A submarine send is considered "finished" when the amount revealed and unlocked are both greater than zero, and the amount for the unlock is greater than or equal to the reveal amount.
     struct CommitData {
-        uint128 amountRevealed; // amount the reveal transaction revealed would be sent in wei. When greater than zero, the submarine has been revealed.
-        uint128 amountUnlocked; // amount the unlock transaction recieved in wei. When greater than zero, the submarine has been unlocked; however the submarine may not be finished, until the unlock amount is GREATER than the promised revealed amount.
+        uint96 amountRevealed; // amount the reveal transaction revealed would be sent in wei. When greater than zero, the submarine has been revealed.
+        uint96 amountUnlocked; // amount the unlock transaction recieved in wei. When greater than zero, the submarine has been unlocked; however the submarine may not be finished, until the unlock amount is GREATER than the promised revealed amount.
+        //uint32 blockNumber; // what block was this revealed in?
+        //uint16 txIndex; // transaction Index. What is the index of this transaction in the block?
     }
 
     /**
      * @notice Constructor. Assigns the commit period length.
      * @param _commitPeriodLength - the length of blocks required after a commit was made before it can be accepted to be revealed. Recommended sane default: 20 blocks
      */
-    constructor(uint32 _commitPeriodLength) public {
+    constructor(uint8 _commitPeriodLength) public {
         commitPeriodLength = _commitPeriodLength;
     }
 
@@ -68,13 +70,17 @@ contract LibSubmarineSimple is ProvethVerifier {
     }
 
     function getCommitState(bytes32 _commitId) public view returns (
-        uint128 amountRevealed,
-        uint128 amountUnlocked
+        uint96 amountRevealed,
+        uint96 amountUnlocked
+        //uint32 blockNumber;
+        //uint16 txIndex;
     ) {
         CommitData memory sesh = commitData[_commitId];
         return (
             sesh.amountRevealed,
             sesh.amountUnlocked
+         //   sesh.blockNumber;
+         //   sesh.txIndex;
         );
     }
 
@@ -139,10 +145,9 @@ contract LibSubmarineSimple is ProvethVerifier {
             keccak256(abi.encodePacked(commitId, byte(0)))
         );
 
-        require(keccak256(abi.encodePacked(provenCommitTx.to)) == keccak256(abi.encodePacked(submarine)), "The proven address should match the revealed address, or the txhash/witness is wrong.");
         require(provenCommitTx.to == submarine, "The proven address should match the revealed address, or the txhash/witness is wrong.");
-        commitData[commitId].amountRevealed = uint128(unsignedUnlockTx.value);
-        emit Revealed(commitId, unsignedUnlockTx.value, _witness, commitBlockHash, submarine);
+        commitData[commitId].amountRevealed = uint96(unsignedUnlockTx.value);
+        emit Revealed(commitId, uint96(unsignedUnlockTx.value), _witness, commitBlockHash, submarine);
     }
 
     /**
@@ -153,8 +158,8 @@ contract LibSubmarineSimple is ProvethVerifier {
     function unlock(bytes32 _commitId) public payable {
         // Required to prevent an attack where someone would unlock after an unlock had already happened, and try to overwrite the unlock amount.
         require(commitData[_commitId].amountUnlocked < msg.value, "You can never unlock less money than you've already unlocked.");
-        commitData[_commitId].amountUnlocked = uint128(msg.value); // right now, a uint128 is enough to store all of the ether/wei in existence. (i.e. 2^128 > 100,000,000 * 10**18)
-        emit Unlocked(_commitId, msg.value);
+        commitData[_commitId].amountUnlocked = uint96(msg.value); // right now, a uint96 is enough to store all of the ether/wei in existence. (i.e. 2^96 > 120,000,000 * 10**18)
+        emit Unlocked(_commitId, uint96(msg.value));
     }
 
     /**
