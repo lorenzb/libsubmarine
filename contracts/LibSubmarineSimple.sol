@@ -29,7 +29,7 @@ contract LibSubmarineSimple is ProvethVerifier {
     /////////////
 
     uint8 public vee = 27; // the ECDSA v parameter: 27 allows us to be broadcast on any network (i.e. mainnet, ropsten, rinkeby etc.)
-    uint8 public commitPeriodLength; // How many blocks must a submarine be committed for before being revealed
+    uint8 public commitPeriodLength = 20; // How many blocks must a submarine be committed for before being revealed - 20 by default, but API clients are free to modify this
 
     mapping(bytes32 => CommitData) public commitData; // stored "session" state information
 
@@ -39,14 +39,6 @@ contract LibSubmarineSimple is ProvethVerifier {
         uint96 amountUnlocked; // amount the unlock transaction recieved in wei. When greater than zero, the submarine has been unlocked; however the submarine may not be finished, until the unlock amount is GREATER than the promised revealed amount.
         uint32 blockNumber; // what block was this revealed in?
         uint16 txIndex; // transaction Index. What is the index of this transaction in the block?
-    }
-
-    /**
-     * @notice Constructor. Assigns the commit period length.
-     * @param _commitPeriodLength - the length of blocks required after a commit was made before it can be accepted to be revealed. Recommended sane default: 20 blocks
-     */
-    constructor(uint8 _commitPeriodLength) public {
-        commitPeriodLength = _commitPeriodLength;
     }
 
     /////////////

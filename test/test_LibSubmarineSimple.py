@@ -350,7 +350,7 @@ class TestLibSubmarineSimple(unittest.TestCase):
 
     # Unlocking before revealing should still yield a usable result
     def test_unlock_before_reveal(self):
-##
+        ##
         ## STARTING STATE
         ##
         ALICE_ADDRESS = t.a1
