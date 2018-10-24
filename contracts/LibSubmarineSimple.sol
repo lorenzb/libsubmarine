@@ -37,8 +37,8 @@ contract LibSubmarineSimple is ProvethVerifier {
     struct CommitData {
         uint96 amountRevealed; // amount the reveal transaction revealed would be sent in wei. When greater than zero, the submarine has been revealed.
         uint96 amountUnlocked; // amount the unlock transaction recieved in wei. When greater than zero, the submarine has been unlocked; however the submarine may not be finished, until the unlock amount is GREATER than the promised revealed amount.
-        //uint32 blockNumber; // what block was this revealed in?
-        //uint16 txIndex; // transaction Index. What is the index of this transaction in the block?
+        uint32 blockNumber; // what block was this revealed in?
+        uint16 txIndex; // transaction Index. What is the index of this transaction in the block?
     }
 
     /**
@@ -71,16 +71,16 @@ contract LibSubmarineSimple is ProvethVerifier {
 
     function getCommitState(bytes32 _commitId) public view returns (
         uint96 amountRevealed,
-        uint96 amountUnlocked
-        //uint32 blockNumber;
-        //uint16 txIndex;
+        uint96 amountUnlocked,
+        uint32 blockNumber,
+        uint16 txIndex
     ) {
         CommitData memory sesh = commitData[_commitId];
         return (
             sesh.amountRevealed,
-            sesh.amountUnlocked
-         //   sesh.blockNumber;
-         //   sesh.txIndex;
+            sesh.amountUnlocked,
+            sesh.blockNumber,
+            sesh.txIndex
         );
     }
 
@@ -129,7 +129,8 @@ contract LibSubmarineSimple is ProvethVerifier {
 
         SignedTransaction memory provenCommitTx;
         uint8 provenCommitTxResultValid;
-        (provenCommitTxResultValid, /* index */, provenCommitTx.nonce, /* gasprice */, /* startgas */, provenCommitTx.to, provenCommitTx.value, provenCommitTx.data, /* v */ , /* r */, /* s */, provenCommitTx.isContractCreation ) = txProof(commitBlockHash, _proofBlob);
+        uint256 provenTxIndex;
+        (provenCommitTxResultValid, provenTxIndex, provenCommitTx.nonce, /* gasprice */, /* startgas */, provenCommitTx.to, provenCommitTx.value, provenCommitTx.data, /* v */ , /* r */, /* s */, provenCommitTx.isContractCreation ) = txProof(commitBlockHash, _proofBlob);
 
         // TX_PROOF_RESULT_PRESENT = 1;
         // TX_PROOF_RESULT_ABSENT = 2;
@@ -147,6 +148,8 @@ contract LibSubmarineSimple is ProvethVerifier {
 
         require(provenCommitTx.to == submarine, "The proven address should match the revealed address, or the txhash/witness is wrong.");
         commitData[commitId].amountRevealed = uint96(unsignedUnlockTx.value);
+        commitData[commitId].blockNumber = _commitBlockNumber;
+        commitData[commitId].txIndex = uint16(provenTxIndex);
         emit Revealed(commitId, uint96(unsignedUnlockTx.value), _witness, commitBlockHash, submarine);
     }
 
