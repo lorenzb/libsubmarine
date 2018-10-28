@@ -107,6 +107,8 @@ contract LibSubmarineSimple is ProvethVerifier {
     // Setters //
     /////////////
 
+    function onReveal()
+
     /**
      * @notice Function called by the user to reveal the session.
      * @dev warning Must be called within 256 blocks of the commit transaction
@@ -155,7 +157,7 @@ contract LibSubmarineSimple is ProvethVerifier {
         );
 
         require(
-            commitData[commitId].amountRevealed == 0,
+            commitData[commitId].commitTxBlockNumber == 0,
             "The tx is already revealed"
         );
 
