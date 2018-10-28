@@ -13,11 +13,11 @@ contract LibSubmarineSimple is ProvethVerifier {
     ////////////
 
     event Unlocked(
-        bytes32 indexed _commitId,
+        bytes32 indexed _submarineId,
         uint96 _commitValue
     );
     event Revealed(
-        bytes32 indexed _commitId,
+        bytes32 indexed _submarineId,
         uint96 _commitValue,
         bytes32 _witness,
         bytes32 _commitBlockHash,
@@ -38,12 +38,12 @@ contract LibSubmarineSimple is ProvethVerifier {
     uint8 public commitPeriodLength = 20;
 
     // Stored "session" state information
-    mapping(bytes32 => CommitData) public commitData;
+    mapping(bytes32 => SubmarineSession) public sessions;
 
     // A submarine send is considered "finished" when the amount revealed and
     // unlocked are both greater than zero, and the amount for the unlock is
     // greater than or equal to the reveal amount.
-    struct CommitData {
+    struct SubmarineSession {
         // Amount the reveal transaction revealed would be sent in wei. When
         // greater than zero, the submarine has been revealed. A uint96 is large
         // enough to store the entire Ethereum supply (~ 1e26 Wei) 700 times
@@ -88,13 +88,13 @@ contract LibSubmarineSimple is ProvethVerifier {
         ));
     }
 
-    function getCommitState(bytes32 _commitId) public view returns (
+    function getCommitState(bytes32 _submarineId) public view returns (
         uint96 amountRevealed,
         uint96 amountUnlocked,
         uint32 commitTxBlockNumber,
         uint16 commitTxIndex
     ) {
-        CommitData memory sesh = commitData[_commitId];
+        SubmarineSession memory sesh = sessions[_submarineId];
         return (
             sesh.amountRevealed,
             sesh.amountUnlocked,
@@ -107,7 +107,11 @@ contract LibSubmarineSimple is ProvethVerifier {
     // Setters //
     /////////////
 
-    function onReveal()
+    // function onSubmarineReveal(
+    //     bytes32 _submarineId,
+    //     bytes _embeddedDAppData,
+    //     uint256 _value
+    //     );
 
     /**
      * @notice Function called by the user to reveal the session.
@@ -146,7 +150,7 @@ contract LibSubmarineSimple is ProvethVerifier {
         require(unsignedUnlockTx.to == address(this));
 
         // fullCommit = (addressA + addressC + aux(sendAmount) + dappData + w + aux(gasPrice) + aux(gasLimit))
-        bytes32 commitId = getCommitId(
+        bytes32 submarineId = getCommitId(
             msg.sender,
             address(this),
             unsignedUnlockTx.value,
@@ -157,7 +161,7 @@ contract LibSubmarineSimple is ProvethVerifier {
         );
 
         require(
-            commitData[commitId].commitTxBlockNumber == 0,
+            sessions[submarineId].commitTxBlockNumber == 0,
             "The tx is already revealed"
         );
 
@@ -190,16 +194,16 @@ contract LibSubmarineSimple is ProvethVerifier {
         address submarine = ecrecover(
             unsignedUnlockTxHash,
             vee,
-            keccak256(abi.encodePacked(commitId, byte(1))),
-            keccak256(abi.encodePacked(commitId, byte(0)))
+            keccak256(abi.encodePacked(submarineId, byte(1))),
+            keccak256(abi.encodePacked(submarineId, byte(0)))
         );
 
         require(provenCommitTx.to == submarine);
-        commitData[commitId].amountRevealed = uint96(unsignedUnlockTx.value);
-        commitData[commitId].commitTxBlockNumber = _commitTxBlockNumber;
-        commitData[commitId].commitTxIndex = uint16(provenCommitTxIndex);
+        sessions[submarineId].amountRevealed = uint96(unsignedUnlockTx.value);
+        sessions[submarineId].commitTxBlockNumber = _commitTxBlockNumber;
+        sessions[submarineId].commitTxIndex = uint16(provenCommitTxIndex);
         emit Revealed(
-            commitId,
+            submarineId,
             uint96(unsignedUnlockTx.value),
             _witness,
             commitBlockHash,
@@ -211,33 +215,33 @@ contract LibSubmarineSimple is ProvethVerifier {
      * @notice Function called by the submarine address to unlock the session.
      * @dev warning this function does NO validation whatsoever.
      *      ALL validation is done in the reveal.
-     * @param _commitId committed data; The commit instance representing the
+     * @param _submarineId committed data; The commit instance representing the
      *        commit/reveal transaction
      */
-    function unlock(bytes32 _commitId) public payable {
+    function unlock(bytes32 _submarineId) public payable {
         // Required to prevent an attack where someone would unlock after an
         // unlock had already happened, and try to overwrite the unlock amount.
         require(
-            commitData[_commitId].amountUnlocked < msg.value,
+            sessions[_submarineId].amountUnlocked < msg.value,
             "You can never unlock less money than you've already unlocked."
         );
-        commitData[_commitId].amountUnlocked = uint96(msg.value);
-        emit Unlocked(_commitId, uint96(msg.value));
+        sessions[_submarineId].amountUnlocked = uint96(msg.value);
+        emit Unlocked(_submarineId, uint96(msg.value));
     }
 
     /**
      * @notice Finished function can be called to determine if a submarine send
      *         transaction has been successfully completed for a given committed
-     * @param _commitId committed data; The commit instance representing the
+     * @param _submarineId committed data; The commit instance representing the
      *        commit/reveal transaction
      * @return bool whether the commit has a stored submarine send that has been
      *         completed for it (0 for failure / not yet finished, 1 for
      *         successful submarine TX)
      */
-    function finished(bytes32 _commitId) public view returns(bool success) {
-        CommitData commit = commitData[_commitId];
-        return commit.amountUnlocked != 0
-            && commit.amountRevealed != 0
-            && commit.amountUnlocked >= commit.amountRevealed;
+    function finished(bytes32 _submarineId) public view returns(bool success) {
+        SubmarineSession sesh = sessions[_submarineId];
+        return sesh.amountUnlocked != 0
+            && sesh.amountRevealed != 0
+            && sesh.amountUnlocked >= sesh.amountRevealed;
     }
 }
