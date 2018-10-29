@@ -21,7 +21,7 @@ contract LibSubmarineSimple is ProvethVerifier {
         uint96 _commitValue,
         bytes32 _witness,
         bytes32 _commitBlockHash,
-        address submarineAddr
+        address _submarineAddr
     );
 
     /////////////
