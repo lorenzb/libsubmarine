@@ -48,8 +48,8 @@ def _generateRS(addressA, addressC, sendAmount, dappData, gasPrice, gasLimit):
     commit, randw = _generateCommit(addressA, addressC, sendAmount, dappData,
                                     gasPrice, gasLimit)
 
-    R = bytearray_to_int(sha3_256(commit + bytes(1)))
-    S = bytearray_to_int(sha3_256(commit + bytes(0)))
+    R = bytearray_to_int(sha3_256(commit + b'\x01'))
+    S = bytearray_to_int(sha3_256(commit + b'\x00'))
 
     if (0 < R < secp256k1n) & (0 < S < (secp256k1n / 2)):
         return commit, randw, R, S
@@ -71,7 +71,7 @@ def _generateCommit(addressA, addressC, sendAmount, dappData, gasPrice,
     :param data: Data for smart contract
     :return:
 
-    FullCommit : Keccak256 (sha3_256) hash of full commit (AddressA | Address C | sendAmount | data | w)
+    FullCommit : Keccak256 (sha3_256) hash of full commit (AddressUser | AddressLibSubmarine | sendAmount | data | w)
     w: Random number w for witness
 
     '''
@@ -84,6 +84,7 @@ def _generateCommit(addressA, addressC, sendAmount, dappData, gasPrice,
 
     fullCommit = (addressA + addressC + aux(sendAmount) + dappData + w +
                   aux(gasPrice) + aux(gasLimit))
+    # log.info("Commit / Session: {} \nAddress A {}\nAddress C {}\n send Amount {}\n dappData {}\n witness {}\n gasprice {}\n gaslimit {}\n".format(fullCommit, addressA, addressC, str(aux(sendAmount)), dappData, w, str(aux(gasPrice)), str(aux(gasLimit))))
 
     return sha3_256(fullCommit), w
 
@@ -136,8 +137,8 @@ def _generateAddressBInternal(addressA,
         s=S)
 
     try:
-        log.info(tx.to_dict())
         addressB = tx.to_dict().get("sender")
+        log.info("Unlock TX Dict: {}".format(tx.to_dict()))
         return tx, addressB, commit, randw
 
     except (ValueError, InvalidTransaction) as e:
