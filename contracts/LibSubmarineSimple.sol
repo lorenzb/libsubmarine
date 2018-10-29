@@ -240,15 +240,18 @@ contract LibSubmarineSimple is ProvethVerifier {
     }
 
     /**
-     * @notice Finished function can be called to determine if a submarine send
-     *         transaction has been successfully completed for a given committed
+     * @notice revealedAndUnlocked can be called to determine if a submarine
+     *         send transaction has been successfully completed for a given
+     *         submarineId
      * @param _submarineId committed data; The commit instance representing the
      *        commit/reveal transaction
      * @return bool whether the commit has a stored submarine send that has been
      *         completed for it (0 for failure / not yet finished, 1 for
      *         successful submarine TX)
      */
-    function finished(bytes32 _submarineId) public view returns(bool success) {
+    function revealedAndUnlocked(
+        bytes32 _submarineId
+    ) public view returns(bool success) {
         SubmarineSession sesh = sessions[_submarineId];
         return sesh.amountUnlocked != 0
             && sesh.amountRevealed != 0
