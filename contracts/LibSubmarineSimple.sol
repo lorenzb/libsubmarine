@@ -69,14 +69,14 @@ contract LibSubmarineSimple is ProvethVerifier {
     */
 
     /**
-     * @notice Helper function to return a submarine ID for associated given 
+     * @notice Helper function to return a submarine ID for associated given
      *         input data
      * @param _user address of the user that initiated the full submarine flow
      * @param _libsubmarine address of submarine contract. Usually address(this)
      * @param _commitValue amount of ether supposed to be sent in this submarine
      *        commit
      * @param _embeddedDAppData  optional Data passed embedded within the unlock
-     *        tx. Clients can put whatever data they want committed to for their 
+     *        tx. Clients can put whatever data they want committed to for their
      *        specific use case
      * @param _witness random commit secret data
      * @param _gasPrice the gas price that will be paid in the unlock tx
@@ -106,7 +106,7 @@ contract LibSubmarineSimple is ProvethVerifier {
      * @notice Return the session information associated with a submarine ID.
      * @return amountRevealed amount promised by user to be unlocked in reveal
      * @return amountUnlocked amount actually unlocked by the user at this time
-     * @return commitTxBlockNumber block number that the user proved holds the 
+     * @return commitTxBlockNumber block number that the user proved holds the
      *         commit TX.
      * @return commitTxIndex the index in the block where the commit tx is.
      */
@@ -125,6 +125,40 @@ contract LibSubmarineSimple is ProvethVerifier {
         );
     }
 
+   /**
+     * @notice Singleton session getter - amount of money sent in submarine send
+     * @return amountRevealed amount promised by user to be unlocked in reveal
+     */
+    function getSubmarineAmount(bytes32 _submarineId) public view returns (
+        uint96 amount
+    ) {
+        SubmarineSession memory sesh = sessions[_submarineId];
+        return sesh.amountRevealed;
+    }
+
+    /**
+     * @notice Singleton session getter - Commit TX Block number
+     * @return commitTxBlockNumber block number that the user proved holds the
+     *         commit TX.
+     */
+    function getSubmarineCommitBlockNumber(bytes32 _submarineId)
+        public view returns (uint32 commitTxBlockNumber)
+    {
+        SubmarineSession memory sesh = sessions[_submarineId];
+        return sesh.commitTxBlockNumber;
+    }
+
+    /**
+     * @notice Singleton session getter - Commit TX Block index inside block
+     * @return commitTxIndex the index in the block where the commit tx is.
+     */
+    function getSubmarineCommitTxIndex(bytes32 _submarineId)
+        public view returns(uint16 commitTxIndex)
+    {
+        SubmarineSession memory sesh = sessions[_submarineId];
+        return sesh.commitTxIndex;
+    }
+
     /////////////
     // Setters //
     /////////////
@@ -137,10 +171,10 @@ contract LibSubmarineSimple is ProvethVerifier {
      *         for client specific implementation/handling.
      * @param  _submarineId the ID for this submarine workflow
      * @param _embeddedDAppData optional Data passed embedded within the unlock
-     *        tx. Clients can put whatever data they want committed to for their 
+     *        tx. Clients can put whatever data they want committed to for their
      *        specific use case
      * @param _value amount of ether revealed
-     * 
+     *
      */
     function onSubmarineReveal(
         bytes32 _submarineId,

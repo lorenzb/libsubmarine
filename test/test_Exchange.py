@@ -18,8 +18,7 @@ import proveth
 
 root_repo_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '../'))
 
-COMMIT_PERIOD_LENGTH = 3
-REVEAL_PERIOD_LENGTH = 4
+COMMIT_PERIOD_LENGTH = 5
 TOTAL_TOKEN_SUPPLY = 1000*10**18
 TOKEN_AMOUNT_STARTING = 1337000000000000000
 ETH_AMOUNT_STARTING = 5*10**18
@@ -124,6 +123,32 @@ class TestExampleAuction(unittest.TestCase):
         self.token_contract.transfer(BOB_ADDRESS, BOB_STARTING_TOKEN_AMOUNT, sender=CONTRACT_OWNER_PRIVATE_KEY)
 
 
+    def test_InvalidEthTokenSwapNoCommit(self):
+        ##
+        ## STARTING STATE
+        ##
+        self.chain.mine(1)
+        self.assertEqual(TOTAL_TOKEN_SUPPLY - TOKEN_AMOUNT_STARTING - BOB_STARTING_TOKEN_AMOUNT, self.token_contract.balanceOf(CONTRACT_OWNER_ADDRESS))
+        self.assertEqual(TOKEN_AMOUNT_STARTING, self.token_contract.balanceOf(self.exchange_contract.address))
+        self.assertEqual(ACCOUNT_STARTING_BALANCE - ETH_AMOUNT_STARTING, self.chain.head_state.get_balance(rec_hex(CONTRACT_OWNER_ADDRESS)))
+        self.assertEqual(ETH_AMOUNT_STARTING, self.chain.head_state.get_balance(rec_hex(self.exchange_contract.address)))
+        self.assertEqual(BOB_STARTING_TOKEN_AMOUNT, self.token_contract.balanceOf(BOB_ADDRESS))
+        self.assertEqual(0, self.token_contract.balanceOf(ALICE_ADDRESS))
+        self.assertEqual(ETH_AMOUNT_STARTING, self.exchange_contract.ethPool())
+        self.assertEqual(TOKEN_AMOUNT_STARTING, self.exchange_contract.tokenPool())
+        self.assertEqual(ETH_AMOUNT_STARTING * TOKEN_AMOUNT_STARTING ,self.exchange_contract.invariant())
+        currentInvariant = ETH_AMOUNT_STARTING * TOKEN_AMOUNT_STARTING
+        self.assertEqual(COMMIT_PERIOD_LENGTH, self.exchange_contract.commitPeriodLength())
+        randomSubId = rec_bin("0x4242424242424242424242424242424242424242424242424242424242424242")
+        self.assertRaises(
+                t.TransactionFailed, 
+                self.exchange_contract.ethToTokenSwap, 
+                randomSubId,
+                value=ALICE_TRADE_AMOUNT,
+                sender=ALICE_PRIVATE_KEY
+        )
+
+
     def test_ExchangeWorkflowBuyTokensWithEth(self):
         ##
         ## STARTING STATE
@@ -139,12 +164,58 @@ class TestExampleAuction(unittest.TestCase):
         self.assertEqual(TOKEN_AMOUNT_STARTING, self.exchange_contract.tokenPool())
         self.assertEqual(ETH_AMOUNT_STARTING * TOKEN_AMOUNT_STARTING ,self.exchange_contract.invariant())
         currentInvariant = ETH_AMOUNT_STARTING * TOKEN_AMOUNT_STARTING
+        self.assertEqual(COMMIT_PERIOD_LENGTH, self.exchange_contract.commitPeriodLength())
+        randomSubId = rec_bin("0x4242424242424242424242424242424242424242424242424242424242424242")
 
         ##
         ## ALICE BUYS TOKENS WITH ETH
         ##
-        timeout = self.chain.head_state.timestamp + 300
-        self.exchange_contract.ethToTokenSwap(1, timeout, value=ALICE_TRADE_AMOUNT, sender=ALICE_PRIVATE_KEY)
+        commitAddressAlice, commitAlice, witnessAlice, unlock_tx_hexAlice = generate_submarine_commit.generateCommitAddress(
+             normalize_address(rec_hex(ALICE_ADDRESS)),
+             normalize_address(rec_hex(self.exchange_contract.address)),
+             ALICE_TRADE_AMOUNT, b'', OURGASPRICE, OURGASLIMIT)
+        unlock_tx_infoAlice = rlp.decode(rec_bin(unlock_tx_hexAlice))
+        unlock_tx_objectAlice = transactions.Transaction(
+            int.from_bytes(unlock_tx_infoAlice[0], byteorder="big"),  # nonce;
+            int.from_bytes(unlock_tx_infoAlice[1], byteorder="big"),  # gasprice
+            int.from_bytes(unlock_tx_infoAlice[2], byteorder="big"),  # startgas
+            unlock_tx_infoAlice[3],                                   # to addr
+            int.from_bytes(unlock_tx_infoAlice[4], byteorder="big"),  # value
+            unlock_tx_infoAlice[5],                                   # data
+            int.from_bytes(unlock_tx_infoAlice[6], byteorder="big"),  # v
+            int.from_bytes(unlock_tx_infoAlice[7], byteorder="big"),  # r
+            int.from_bytes(unlock_tx_infoAlice[8], byteorder="big")   # s
+        )
+
+        commit_tx_objectAlice = transactions.Transaction(
+            0, OURGASPRICE, BASIC_SEND_GAS_LIMIT, rec_bin(commitAddressAlice),
+            (ALICE_TRADE_AMOUNT + extraTransactionFees),
+            b'').sign(ALICE_PRIVATE_KEY)
+        commit_gasAlice = int(self.chain.head_state.gas_used)
+
+        self.chain.direct_tx(commit_tx_objectAlice)
+        self.chain.mine(1)
+
+        commit_block_numberAlice, commit_block_indexAlice = self.chain.chain.get_tx_position(
+            commit_tx_objectAlice)
+        self.assertEqual(ALICE_TRADE_AMOUNT + extraTransactionFees,
+                         self.chain.head_state.get_balance(commitAddressAlice))
+        self.assertEqual(
+            ACCOUNT_STARTING_BALANCE - (ALICE_TRADE_AMOUNT + extraTransactionFees +
+                                        BASIC_SEND_GAS_LIMIT * OURGASPRICE),
+            self.chain.head_state.get_balance(rec_hex(ALICE_ADDRESS)))
+
+        session_dataAlice = self.exchange_contract.getSubmarineState(rec_bin(commitAlice))
+        self.assertListEqual(session_dataAlice,
+                [SOLIDITY_NULL_INITIALVAL, SOLIDITY_NULL_INITIALVAL, SOLIDITY_NULL_INITIALVAL, SOLIDITY_NULL_INITIALVAL])
+
+        finished_boolAlice = self.exchange_contract.revealedAndUnlocked(rec_bin(commitAlice))
+        self.assertFalse(
+            finished_boolAlice,
+            "The contract should not be finished before it's even begun.")
+
+
+
 
         ##
         ## CHECK STATE AFTER TOKEN PURCHASE
