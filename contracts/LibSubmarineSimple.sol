@@ -107,11 +107,15 @@ contract LibSubmarineSimple is ProvethVerifier {
     // Setters //
     /////////////
 
-    // function onSubmarineReveal(
-    //     bytes32 _submarineId,
-    //     bytes _embeddedDAppData,
-    //     uint256 _value
-    //     );
+    /**
+     * @notice Consumers of this library should implement their custom reveal
+     *         logic by overriding this method.
+     */
+    function onSubmarineReveal(
+        bytes32 _submarineId,
+        bytes _embeddedDAppData,
+        uint256 _value
+    ) internal;
 
     /**
      * @notice Function called by the user to reveal the session.
@@ -209,6 +213,8 @@ contract LibSubmarineSimple is ProvethVerifier {
             commitBlockHash,
             submarine
         );
+
+        onSubmarineReveal(submarineId, _embeddedDAppData, unsignedUnlockTx.value);
     }
 
     /**

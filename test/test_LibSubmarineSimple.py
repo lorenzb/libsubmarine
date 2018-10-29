@@ -48,6 +48,10 @@ class TestLibSubmarineSimple(unittest.TestCase):
         self.verifier_contract = deploy_solidity_contract(
             chain=self.chain,
             solc_config_sources={
+                'LibSubmarineSimpleTestHelper.sol': {
+                    'urls':
+                    [os.path.join(contract_dir, 'LibSubmarineSimpleTestHelper.sol')]
+                },
                 'LibSubmarineSimple.sol': {
                     'urls':
                     [os.path.join(contract_dir, 'LibSubmarineSimple.sol')]
@@ -66,8 +70,8 @@ class TestLibSubmarineSimple(unittest.TestCase):
                 }
             },
             allow_paths=root_repo_dir,
-            contract_file='LibSubmarineSimple.sol',
-            contract_name='LibSubmarineSimple',
+            contract_file='LibSubmarineSimpleTestHelper.sol',
+            contract_name='LibSubmarineSimpleTestHelper',
             startgas=10**7)
 
     def generateInvalidUnlockTx(self, userAddress, contractAddress, maliciousAddress):
