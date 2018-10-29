@@ -22,6 +22,8 @@ LGB       `-.______________________\_...-``'.       ~  ~
 
 **A work-in-progress implementation of better submarine sends for Ethereum.**
 
+More details on submarine sends: [To Sink Frontrunners, Send in the Submarines](http://hackingdistributed.com/2017/08/28/submarine-sends/).
+
 ## Authors
 
 libsumarine's development was started by the *Submarines* group at the [2018 IC3 Ethereum bootcamp](http://www.initc3.org/events/2018-07-12-IC3-Ethereum-Crypto-Boot-Camp.html):

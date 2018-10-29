@@ -48,6 +48,10 @@ class TestLibSubmarineSimple(unittest.TestCase):
         self.verifier_contract = deploy_solidity_contract(
             chain=self.chain,
             solc_config_sources={
+                'LibSubmarineSimpleTestHelper.sol': {
+                    'urls':
+                    [os.path.join(contract_dir, 'LibSubmarineSimpleTestHelper.sol')]
+                },
                 'LibSubmarineSimple.sol': {
                     'urls':
                     [os.path.join(contract_dir, 'LibSubmarineSimple.sol')]
@@ -66,8 +70,8 @@ class TestLibSubmarineSimple(unittest.TestCase):
                 }
             },
             allow_paths=root_repo_dir,
-            contract_file='LibSubmarineSimple.sol',
-            contract_name='LibSubmarineSimple',
+            contract_file='LibSubmarineSimpleTestHelper.sol',
+            contract_name='LibSubmarineSimpleTestHelper',
             startgas=10**7)
 
     def generateInvalidUnlockTx(self, userAddress, contractAddress, maliciousAddress):
@@ -214,7 +218,7 @@ class TestLibSubmarineSimple(unittest.TestCase):
             "The contract should not know anything about the commit until after it's been revealed... "
         )
 
-        finished_bool = self.verifier_contract.finished(rec_bin(commit))
+        finished_bool = self.verifier_contract.revealedAndUnlocked(rec_bin(commit))
         self.assertFalse(
             finished_bool,
             "The contract should not be finished before it's even begun.")
@@ -306,7 +310,7 @@ class TestLibSubmarineSimple(unittest.TestCase):
             session_data, [UNLOCK_AMOUNT, SOLIDITY_NULL_INITIALVAL, commit_block_number, commit_block_index ],
             "After the Reveal, the state should report revealed but not unlocked."
         )
-        finished_bool = self.verifier_contract.finished(rec_bin(commit))
+        finished_bool = self.verifier_contract.revealedAndUnlocked(rec_bin(commit))
         self.assertFalse(
             finished_bool,
             "The contract is only revealed, not unlocked and therefore finished."
@@ -340,7 +344,7 @@ class TestLibSubmarineSimple(unittest.TestCase):
             session_data, [UNLOCK_AMOUNT, UNLOCK_AMOUNT, commit_block_number, commit_block_index ],
             "State does not match expected value after unlock.")
 
-        finished_bool = self.verifier_contract.finished(rec_bin(commit))
+        finished_bool = self.verifier_contract.revealedAndUnlocked(rec_bin(commit))
         self.assertTrue(finished_bool,
                         "After unlock, contract should be finished.")
 
@@ -408,7 +412,7 @@ class TestLibSubmarineSimple(unittest.TestCase):
         session_data = self.verifier_contract.getCommitState(rec_bin(commit))
         self.assertListEqual(session_data, [SOLIDITY_NULL_INITIALVAL, SOLIDITY_NULL_INITIALVAL, SOLIDITY_NULL_INITIALVAL, SOLIDITY_NULL_INITIALVAL])
 
-        finished_bool = self.verifier_contract.finished(rec_bin(commit))
+        finished_bool = self.verifier_contract.revealedAndUnlocked(rec_bin(commit))
         self.assertFalse(
             finished_bool,
             "The contract should not be finished until after the reveal.")
@@ -428,7 +432,7 @@ class TestLibSubmarineSimple(unittest.TestCase):
             session_data, [SOLIDITY_NULL_INITIALVAL, UNLOCK_AMOUNT, SOLIDITY_NULL_INITIALVAL, SOLIDITY_NULL_INITIALVAL],
             "State does not match expected value after unlock.")
 
-        finished_bool = self.verifier_contract.finished(rec_bin(commit))
+        finished_bool = self.verifier_contract.revealedAndUnlocked(rec_bin(commit))
         self.assertFalse(finished_bool)
 
         ##
@@ -520,7 +524,7 @@ class TestLibSubmarineSimple(unittest.TestCase):
             session_data, [UNLOCK_AMOUNT, UNLOCK_AMOUNT, commit_block_number, commit_block_index],
             "After the Reveal, the state should report both revealed and unlocked."
         )
-        finished_bool = self.verifier_contract.finished(rec_bin(commit))
+        finished_bool = self.verifier_contract.revealedAndUnlocked(rec_bin(commit))
         self.assertTrue(
             finished_bool,
             "The contract was unlocked first and then revealed, it should be finished"
@@ -602,7 +606,7 @@ class TestLibSubmarineSimple(unittest.TestCase):
         session_data = self.verifier_contract.getCommitState(rec_bin(commit))
         self.assertListEqual(session_data, [SOLIDITY_NULL_INITIALVAL, SPAM_AMOUNT, SOLIDITY_NULL_INITIALVAL, SOLIDITY_NULL_INITIALVAL])
 
-        finished_bool = self.verifier_contract.finished(rec_bin(commit))
+        finished_bool = self.verifier_contract.revealedAndUnlocked(rec_bin(commit))
         self.assertFalse(
             finished_bool,
             "The contract should not be finished until after the reveal.")
@@ -622,7 +626,7 @@ class TestLibSubmarineSimple(unittest.TestCase):
             session_data, [SOLIDITY_NULL_INITIALVAL, UNLOCK_AMOUNT, SOLIDITY_NULL_INITIALVAL, SOLIDITY_NULL_INITIALVAL],
             "State does not match expected value after unlock.")
 
-        finished_bool = self.verifier_contract.finished(rec_bin(commit))
+        finished_bool = self.verifier_contract.revealedAndUnlocked(rec_bin(commit))
         self.assertFalse(finished_bool)
 
         ##
@@ -714,7 +718,7 @@ class TestLibSubmarineSimple(unittest.TestCase):
             session_data, [UNLOCK_AMOUNT, UNLOCK_AMOUNT, commit_block_number, commit_block_index],
             "After the Reveal, the state should report both revealed and unlocked."
         )
-        finished_bool = self.verifier_contract.finished(rec_bin(commit))
+        finished_bool = self.verifier_contract.revealedAndUnlocked(rec_bin(commit))
         self.assertTrue(
             finished_bool,
             "The contract was unlocked first and then revealed, it should be finished"
@@ -799,7 +803,7 @@ class TestLibSubmarineSimple(unittest.TestCase):
         session_data = self.verifier_contract.getCommitState(rec_bin(commit))
         self.assertListEqual(session_data, [SOLIDITY_NULL_INITIALVAL, SPAM_AMOUNT, SOLIDITY_NULL_INITIALVAL, SOLIDITY_NULL_INITIALVAL])
 
-        finished_bool = self.verifier_contract.finished(rec_bin(commit))
+        finished_bool = self.verifier_contract.revealedAndUnlocked(rec_bin(commit))
         self.assertFalse(
             finished_bool,
             "The contract should not be finished until after the reveal.")
@@ -819,7 +823,7 @@ class TestLibSubmarineSimple(unittest.TestCase):
             session_data, [SOLIDITY_NULL_INITIALVAL, SPAM_AMOUNT, SOLIDITY_NULL_INITIALVAL, SOLIDITY_NULL_INITIALVAL],
             "State does not match expected value after unlock.")
 
-        finished_bool = self.verifier_contract.finished(rec_bin(commit))
+        finished_bool = self.verifier_contract.revealedAndUnlocked(rec_bin(commit))
         self.assertFalse(finished_bool)
 
         ##
@@ -911,7 +915,7 @@ class TestLibSubmarineSimple(unittest.TestCase):
             session_data, [UNLOCK_AMOUNT, SPAM_AMOUNT, commit_block_number, commit_block_index],
             "After the Reveal, the state should report both revealed and unlocked."
         )
-        finished_bool = self.verifier_contract.finished(rec_bin(commit))
+        finished_bool = self.verifier_contract.revealedAndUnlocked(rec_bin(commit))
         self.assertTrue(
             finished_bool,
             "The contract was unlocked first and then revealed, it should be finished"
