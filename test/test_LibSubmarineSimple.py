@@ -212,7 +212,7 @@ class TestLibSubmarineSimple(unittest.TestCase):
                                         BASIC_SEND_GAS_LIMIT * OURGASPRICE),
             self.chain.head_state.get_balance(rec_hex(ALICE_ADDRESS)))
 
-        session_data = self.verifier_contract.getCommitState(rec_bin(commit))
+        session_data = self.verifier_contract.getSubmarineState(rec_bin(commit))
         self.assertListEqual(
             session_data, [SOLIDITY_NULL_INITIALVAL, SOLIDITY_NULL_INITIALVAL, SOLIDITY_NULL_INITIALVAL, SOLIDITY_NULL_INITIALVAL],
             "The contract should not know anything about the commit until after it's been revealed... "
@@ -305,7 +305,7 @@ class TestLibSubmarineSimple(unittest.TestCase):
         ##
         ## CHECK STATE AFTER REVEAL TX
         ##
-        session_data = self.verifier_contract.getCommitState(rec_bin(commit))
+        session_data = self.verifier_contract.getSubmarineState(rec_bin(commit))
         self.assertListEqual(
             session_data, [UNLOCK_AMOUNT, SOLIDITY_NULL_INITIALVAL, commit_block_number, commit_block_index ],
             "After the Reveal, the state should report revealed but not unlocked."
@@ -339,7 +339,7 @@ class TestLibSubmarineSimple(unittest.TestCase):
             999998562999979000000000,
             self.chain.head_state.get_balance(rec_hex(ALICE_ADDRESS)))
 
-        session_data = self.verifier_contract.getCommitState(rec_bin(commit))
+        session_data = self.verifier_contract.getSubmarineState(rec_bin(commit))
         self.assertListEqual(
             session_data, [UNLOCK_AMOUNT, UNLOCK_AMOUNT, commit_block_number, commit_block_index ],
             "State does not match expected value after unlock.")
@@ -409,7 +409,7 @@ class TestLibSubmarineSimple(unittest.TestCase):
 
         self.chain.mine(4)
 
-        session_data = self.verifier_contract.getCommitState(rec_bin(commit))
+        session_data = self.verifier_contract.getSubmarineState(rec_bin(commit))
         self.assertListEqual(session_data, [SOLIDITY_NULL_INITIALVAL, SOLIDITY_NULL_INITIALVAL, SOLIDITY_NULL_INITIALVAL, SOLIDITY_NULL_INITIALVAL])
 
         finished_bool = self.verifier_contract.revealedAndUnlocked(rec_bin(commit))
@@ -427,7 +427,7 @@ class TestLibSubmarineSimple(unittest.TestCase):
         ##
         ## CHECK STATE AFTER UNLOCK
         ##
-        session_data = self.verifier_contract.getCommitState(rec_bin(commit))
+        session_data = self.verifier_contract.getSubmarineState(rec_bin(commit))
         self.assertListEqual(
             session_data, [SOLIDITY_NULL_INITIALVAL, UNLOCK_AMOUNT, SOLIDITY_NULL_INITIALVAL, SOLIDITY_NULL_INITIALVAL],
             "State does not match expected value after unlock.")
@@ -519,7 +519,7 @@ class TestLibSubmarineSimple(unittest.TestCase):
         ##
         ## CHECK STATE AFTER REVEAL TX
         ##
-        session_data = self.verifier_contract.getCommitState(rec_bin(commit))
+        session_data = self.verifier_contract.getSubmarineState(rec_bin(commit))
         self.assertListEqual(
             session_data, [UNLOCK_AMOUNT, UNLOCK_AMOUNT, commit_block_number, commit_block_index],
             "After the Reveal, the state should report both revealed and unlocked."
@@ -587,7 +587,7 @@ class TestLibSubmarineSimple(unittest.TestCase):
             unlock_tx_object[5]).sign(SPAM_PRIVATE_KEY_MALLORY)
 
         self.chain.direct_tx(spam_tx_object)
-        session_data = self.verifier_contract.getCommitState(rec_bin(commit))
+        session_data = self.verifier_contract.getSubmarineState(rec_bin(commit))
         self.assertListEqual(session_data, [SOLIDITY_NULL_INITIALVAL, SPAM_AMOUNT, SOLIDITY_NULL_INITIALVAL, SOLIDITY_NULL_INITIALVAL])
         self.chain.mine(1)
 
@@ -603,7 +603,7 @@ class TestLibSubmarineSimple(unittest.TestCase):
 
         self.chain.mine(4)
 
-        session_data = self.verifier_contract.getCommitState(rec_bin(commit))
+        session_data = self.verifier_contract.getSubmarineState(rec_bin(commit))
         self.assertListEqual(session_data, [SOLIDITY_NULL_INITIALVAL, SPAM_AMOUNT, SOLIDITY_NULL_INITIALVAL, SOLIDITY_NULL_INITIALVAL])
 
         finished_bool = self.verifier_contract.revealedAndUnlocked(rec_bin(commit))
@@ -621,7 +621,7 @@ class TestLibSubmarineSimple(unittest.TestCase):
         ##
         ## CHECK STATE AFTER UNLOCK
         ##
-        session_data = self.verifier_contract.getCommitState(rec_bin(commit))
+        session_data = self.verifier_contract.getSubmarineState(rec_bin(commit))
         self.assertListEqual(
             session_data, [SOLIDITY_NULL_INITIALVAL, UNLOCK_AMOUNT, SOLIDITY_NULL_INITIALVAL, SOLIDITY_NULL_INITIALVAL],
             "State does not match expected value after unlock.")
@@ -713,7 +713,7 @@ class TestLibSubmarineSimple(unittest.TestCase):
         ##
         ## CHECK STATE AFTER REVEAL TX
         ##
-        session_data = self.verifier_contract.getCommitState(rec_bin(commit))
+        session_data = self.verifier_contract.getSubmarineState(rec_bin(commit))
         self.assertListEqual(
             session_data, [UNLOCK_AMOUNT, UNLOCK_AMOUNT, commit_block_number, commit_block_index],
             "After the Reveal, the state should report both revealed and unlocked."
@@ -784,7 +784,7 @@ class TestLibSubmarineSimple(unittest.TestCase):
             unlock_tx_object[5]).sign(SPAM_PRIVATE_KEY_MALLORY)
 
         self.chain.direct_tx(spam_tx_object)
-        session_data = self.verifier_contract.getCommitState(rec_bin(commit))
+        session_data = self.verifier_contract.getSubmarineState(rec_bin(commit))
         self.assertListEqual(session_data, [SOLIDITY_NULL_INITIALVAL, SPAM_AMOUNT, SOLIDITY_NULL_INITIALVAL, SOLIDITY_NULL_INITIALVAL])
         self.chain.mine(1)
 
@@ -800,7 +800,7 @@ class TestLibSubmarineSimple(unittest.TestCase):
 
         self.chain.mine(4)
 
-        session_data = self.verifier_contract.getCommitState(rec_bin(commit))
+        session_data = self.verifier_contract.getSubmarineState(rec_bin(commit))
         self.assertListEqual(session_data, [SOLIDITY_NULL_INITIALVAL, SPAM_AMOUNT, SOLIDITY_NULL_INITIALVAL, SOLIDITY_NULL_INITIALVAL])
 
         finished_bool = self.verifier_contract.revealedAndUnlocked(rec_bin(commit))
@@ -818,7 +818,7 @@ class TestLibSubmarineSimple(unittest.TestCase):
         ##
         ## CHECK STATE AFTER UNLOCK
         ##
-        session_data = self.verifier_contract.getCommitState(rec_bin(commit))
+        session_data = self.verifier_contract.getSubmarineState(rec_bin(commit))
         self.assertListEqual(
             session_data, [SOLIDITY_NULL_INITIALVAL, SPAM_AMOUNT, SOLIDITY_NULL_INITIALVAL, SOLIDITY_NULL_INITIALVAL],
             "State does not match expected value after unlock.")
@@ -910,7 +910,7 @@ class TestLibSubmarineSimple(unittest.TestCase):
         ##
         ## CHECK STATE AFTER REVEAL TX
         ##
-        session_data = self.verifier_contract.getCommitState(rec_bin(commit))
+        session_data = self.verifier_contract.getSubmarineState(rec_bin(commit))
         self.assertListEqual(
             session_data, [UNLOCK_AMOUNT, SPAM_AMOUNT, commit_block_number, commit_block_index],
             "After the Reveal, the state should report both revealed and unlocked."

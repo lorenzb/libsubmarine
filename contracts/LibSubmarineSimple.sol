@@ -68,7 +68,21 @@ contract LibSubmarineSimple is ProvethVerifier {
        Keeping these functions makes instantiating a contract more expensive for gas costs, but helps with testing
     */
 
-    function getCommitId(
+    /**
+     * @notice Helper function to return a submarine ID for associated given 
+     *         input data
+     * @param _user address of the user that initiated the full submarine flow
+     * @param _libsubmarine address of submarine contract. Usually address(this)
+     * @param _commitValue amount of ether supposed to be sent in this submarine
+     *        commit
+     * @param _embeddedDAppData  optional Data passed embedded within the unlock
+     *        tx. Clients can put whatever data they want committed to for their 
+     *        specific use case
+     * @param _witness random commit secret data
+     * @param _gasPrice the gas price that will be paid in the unlock tx
+     * @param _gasLimit the gas limit that will be set in the unlock tx
+     */
+    function getSubmarineId(
         address _user,
         address _libsubmarine,
         uint256 _commitValue,
@@ -88,7 +102,15 @@ contract LibSubmarineSimple is ProvethVerifier {
         ));
     }
 
-    function getCommitState(bytes32 _submarineId) public view returns (
+    /**
+     * @notice Return the session information associated with a submarine ID.
+     * @return amountRevealed amount promised by user to be unlocked in reveal
+     * @return amountUnlocked amount actually unlocked by the user at this time
+     * @return commitTxBlockNumber block number that the user proved holds the 
+     *         commit TX.
+     * @return commitTxIndex the index in the block where the commit tx is.
+     */
+    function getSubmarineState(bytes32 _submarineId) public view returns (
         uint96 amountRevealed,
         uint96 amountUnlocked,
         uint32 commitTxBlockNumber,
@@ -109,7 +131,16 @@ contract LibSubmarineSimple is ProvethVerifier {
 
     /**
      * @notice Consumers of this library should implement their custom reveal
-     *         logic by overriding this method.
+     *         logic by overriding this method. This function is a handler that
+     *         is called by reveal. A user calls reveal, LibSubmarine does the
+     *         required submarine specific stuff, and then calls this handler
+     *         for client specific implementation/handling.
+     * @param  _submarineId the ID for this submarine workflow
+     * @param _embeddedDAppData optional Data passed embedded within the unlock
+     *        tx. Clients can put whatever data they want committed to for their 
+     *        specific use case
+     * @param _value amount of ether revealed
+     * 
      */
     function onSubmarineReveal(
         bytes32 _submarineId,
@@ -154,7 +185,7 @@ contract LibSubmarineSimple is ProvethVerifier {
         require(unsignedUnlockTx.to == address(this));
 
         // fullCommit = (addressA + addressC + aux(sendAmount) + dappData + w + aux(gasPrice) + aux(gasLimit))
-        bytes32 submarineId = getCommitId(
+        bytes32 submarineId = getSubmarineId(
             msg.sender,
             address(this),
             unsignedUnlockTx.value,
@@ -252,7 +283,7 @@ contract LibSubmarineSimple is ProvethVerifier {
     function revealedAndUnlocked(
         bytes32 _submarineId
     ) public view returns(bool success) {
-        SubmarineSession sesh = sessions[_submarineId];
+        SubmarineSession memory sesh = sessions[_submarineId];
         return sesh.amountUnlocked != 0
             && sesh.amountRevealed != 0
             && sesh.amountUnlocked >= sesh.amountRevealed;
