@@ -29,7 +29,6 @@ contract Exchange {// is LibSubmarineSimple {
     uint256 public tokenPool;
     uint256 public invariant;
     address public tokenAddress;
-    mapping(address => uint256) shares;   
 
     /// MODIFIERS
     modifier exchangeInitialized() {
@@ -60,7 +59,6 @@ contract Exchange {// is LibSubmarineSimple {
         ethPool = msg.value;
         tokenPool = _tokenAmount;
         invariant = ethPool.mul(tokenPool);
-        shares[msg.sender] = 1000;
         require(token.transferFrom(msg.sender, address(this), _tokenAmount));
 }
     
