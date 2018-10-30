@@ -1,3 +1,6 @@
 [submodule "proveth"]
 	path = proveth
 	url = https://github.com/lorenzb/proveth.git
+[submodule "contracts/examples/erc721_auction/openzeppelin-solidity"]
+	path = contracts/examples/erc721_auction/openzeppelin-solidity
+	url = https://github.com/OpenZeppelin/openzeppelin-solidity.git
