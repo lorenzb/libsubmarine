@@ -145,7 +145,7 @@ class TestExampleAuction(unittest.TestCase):
                 self.exchange_contract.ethToTokenSwap, 
                 randomSubId,
                 value=ALICE_TRADE_AMOUNT,
-                sender=ALICE_PRIVATE_KEY
+                sender=RANDO_ADDRESS_PRIVATE_KEY
         )
 
 
@@ -157,15 +157,15 @@ class TestExampleAuction(unittest.TestCase):
         self.assertEqual(TOTAL_TOKEN_SUPPLY - TOKEN_AMOUNT_STARTING - BOB_STARTING_TOKEN_AMOUNT, self.token_contract.balanceOf(CONTRACT_OWNER_ADDRESS))
         self.assertEqual(TOKEN_AMOUNT_STARTING, self.token_contract.balanceOf(self.exchange_contract.address))
         self.assertEqual(ACCOUNT_STARTING_BALANCE - ETH_AMOUNT_STARTING, self.chain.head_state.get_balance(rec_hex(CONTRACT_OWNER_ADDRESS)))
+        self.assertEqual(ACCOUNT_STARTING_BALANCE, self.chain.head_state.get_balance(rec_hex(ALICE_ADDRESS)))
         self.assertEqual(ETH_AMOUNT_STARTING, self.chain.head_state.get_balance(rec_hex(self.exchange_contract.address)))
         self.assertEqual(BOB_STARTING_TOKEN_AMOUNT, self.token_contract.balanceOf(BOB_ADDRESS))
         self.assertEqual(0, self.token_contract.balanceOf(ALICE_ADDRESS))
         self.assertEqual(ETH_AMOUNT_STARTING, self.exchange_contract.ethPool())
         self.assertEqual(TOKEN_AMOUNT_STARTING, self.exchange_contract.tokenPool())
-        self.assertEqual(ETH_AMOUNT_STARTING * TOKEN_AMOUNT_STARTING ,self.exchange_contract.invariant())
+        self.assertEqual(ETH_AMOUNT_STARTING * TOKEN_AMOUNT_STARTING, self.exchange_contract.invariant())
         currentInvariant = ETH_AMOUNT_STARTING * TOKEN_AMOUNT_STARTING
         self.assertEqual(COMMIT_PERIOD_LENGTH, self.exchange_contract.commitPeriodLength())
-        randomSubId = rec_bin("0x4242424242424242424242424242424242424242424242424242424242424242")
 
         ##
         ## ALICE BUYS TOKENS WITH ETH
@@ -191,9 +191,9 @@ class TestExampleAuction(unittest.TestCase):
             0, OURGASPRICE, BASIC_SEND_GAS_LIMIT, rec_bin(commitAddressAlice),
             (ALICE_TRADE_AMOUNT + extraTransactionFees),
             b'').sign(ALICE_PRIVATE_KEY)
-        commit_gasAlice = int(self.chain.head_state.gas_used)
 
         self.chain.direct_tx(commit_tx_objectAlice)
+        commit_gasAlice = int(self.chain.head_state.gas_used)
         self.chain.mine(1)
 
         commit_block_numberAlice, commit_block_indexAlice = self.chain.chain.get_tx_position(
@@ -215,15 +215,102 @@ class TestExampleAuction(unittest.TestCase):
             "The contract should not be finished before it's even begun.")
 
 
+        ##
+        ## GENERATE AND BROADCAST REVEAL BID TXS
+        ##
+        self.chain.mine(COMMIT_PERIOD_LENGTH)
 
+        commit_block_objectAlice = self.chain.chain.get_block_by_number(commit_block_numberAlice)
+        proveth_expected_block_format_dictAlice = dict()
+        proveth_expected_block_format_dictAlice['parentHash'] = commit_block_objectAlice['prevhash']
+        proveth_expected_block_format_dictAlice['sha3Uncles'] = commit_block_objectAlice['uncles_hash']
+        proveth_expected_block_format_dictAlice['miner'] = commit_block_objectAlice['coinbase']
+        proveth_expected_block_format_dictAlice['stateRoot'] = commit_block_objectAlice['state_root']
+        proveth_expected_block_format_dictAlice['transactionsRoot'] = commit_block_objectAlice['tx_list_root']
+        proveth_expected_block_format_dictAlice['receiptsRoot'] = commit_block_objectAlice['receipts_root']
+        proveth_expected_block_format_dictAlice['logsBloom'] = commit_block_objectAlice['bloom']
+        proveth_expected_block_format_dictAlice['difficulty'] = commit_block_objectAlice['difficulty']
+        proveth_expected_block_format_dictAlice['number'] = commit_block_objectAlice['number']
+        proveth_expected_block_format_dictAlice['gasLimit'] = commit_block_objectAlice['gas_limit']
+        proveth_expected_block_format_dictAlice['gasUsed'] = commit_block_objectAlice['gas_used']
+        proveth_expected_block_format_dictAlice['timestamp'] = commit_block_objectAlice['timestamp']
+        proveth_expected_block_format_dictAlice['extraData'] = commit_block_objectAlice['extra_data']
+        proveth_expected_block_format_dictAlice['mixHash'] = commit_block_objectAlice['mixhash']
+        proveth_expected_block_format_dictAlice['nonce'] = commit_block_objectAlice['nonce']
+        proveth_expected_block_format_dictAlice['hash'] = commit_block_objectAlice.hash
+        proveth_expected_block_format_dictAlice['uncles'] = []
+        proveth_expected_block_format_dictAlice['transactions'] = ({
+            "blockHash":          commit_block_objectAlice.hash,
+            "blockNumber":        str(hex((commit_block_objectAlice['number']))),
+            "from":               checksum_encode(ALICE_ADDRESS),
+            "gas":                str(hex(commit_tx_objectAlice['startgas'])),
+            "gasPrice":           str(hex(commit_tx_objectAlice['gasprice'])),
+            "hash":               rec_hex(commit_tx_objectAlice['hash']),
+            "input":              rec_hex(commit_tx_objectAlice['data']),
+            "nonce":              str(hex(commit_tx_objectAlice['nonce'])),
+            "to":                 checksum_encode(commit_tx_objectAlice['to']),
+            "transactionIndex":   str(hex(0)),
+            "value":              str(hex(commit_tx_objectAlice['value'])),
+            "v":                  str(hex(commit_tx_objectAlice['v'])),
+            "r":                  str(hex(commit_tx_objectAlice['r'])),
+            "s":                  str(hex(commit_tx_objectAlice['s']))
+        }, )
+
+        commit_proof_blobAlice = proveth.generate_proof_blob(
+            proveth_expected_block_format_dictAlice, commit_block_indexAlice)
+        _unlockExtraData = b''  # In this example we dont have any extra embedded data as part of the unlock TX
+
+
+        unlock_tx_unsigned_objectAlice = transactions.UnsignedTransaction(
+            int.from_bytes(unlock_tx_infoAlice[0], byteorder="big"),  # nonce;
+            int.from_bytes(unlock_tx_infoAlice[1], byteorder="big"),  # gasprice
+            int.from_bytes(unlock_tx_infoAlice[2], byteorder="big"),  # startgas
+            unlock_tx_infoAlice[3],  # to addr
+            int.from_bytes(unlock_tx_infoAlice[4], byteorder="big"),  # value
+            unlock_tx_infoAlice[5],  # data
+        )
+        unlock_tx_unsigned_rlpAlice = rlp.encode(unlock_tx_unsigned_objectAlice, transactions.UnsignedTransaction)
+
+
+        self.chain.mine(5)
+        self.exchange_contract.reveal(
+            commit_block_numberAlice,   # uint32 _commitBlockNumber,
+            _unlockExtraData,           # bytes _commitData,
+            rec_bin(witnessAlice),      # bytes32 _witness,
+            unlock_tx_unsigned_rlpAlice,  # bytes _rlpUnlockTxUnsigned,
+            commit_proof_blobAlice,  # bytes _proofBlob
+            sender=ALICE_PRIVATE_KEY,
+            gasprice=OURGASPRICE)
+        reveal_gasAlice = int(self.chain.head_state.gas_used)
+
+        ##
+        ## BROADCAST UNLOCK
+        ##
+        self.chain.mine(1)
+        self.chain.direct_tx(unlock_tx_objectAlice)
+        self.chain.mine(1)
+
+        ##
+        ## Call the actual ethToTokenSwap function
+        ##
+        self.exchange_contract.ethToTokenSwap(rec_bin(commitAlice), sender=ALICE_PRIVATE_KEY, gasprice=OURGASPRICE)
+        swapcall_gasAlice = int(self.chain.head_state.gas_used)
+        self.chain.mine(1)
+
+        # unlock_block_numberAlice, unlock_block_indexAlice = self.chain.chain.get_tx_position(
+        #         unlock_tx_objectAlice)
+        # unlock_block_objectAlice = self.chain.chain.get_block_by_number(unlock_block_numberAlice)
+        # print(unlock_block_objectAlice.as_dict())
+        # print(unlock_block_objectAlice.as_dict()['transactions'][0].as_dict())
+        # print(unlock_block_objectAlice.as_dict()['header'].as_dict())
 
         ##
         ## CHECK STATE AFTER TOKEN PURCHASE
         ##
         self.assertEqual(ETH_AMOUNT_STARTING+ALICE_TRADE_AMOUNT, self.exchange_contract.ethPool())
         self.assertEqual(ETH_AMOUNT_STARTING+ALICE_TRADE_AMOUNT, self.chain.head_state.get_balance(rec_hex(self.exchange_contract.address)))
-        self.assertEqual(ACCOUNT_STARTING_BALANCE - ALICE_TRADE_AMOUNT, self.chain.head_state.get_balance(rec_hex(ALICE_ADDRESS)))
-        tokens_out = int(TOKEN_AMOUNT_STARTING - (currentInvariant //(ETH_AMOUNT_STARTING + ALICE_TRADE_AMOUNT)))
+        self.assertEqual(ACCOUNT_STARTING_BALANCE - ALICE_TRADE_AMOUNT - (OURGASPRICE*(commit_gasAlice + reveal_gasAlice + swapcall_gasAlice)) - extraTransactionFees, self.chain.head_state.get_balance(rec_hex(ALICE_ADDRESS)))
+        tokens_out = int(TOKEN_AMOUNT_STARTING - (currentInvariant //(ETH_AMOUNT_STARTING + ALICE_TRADE_AMOUNT))) # // floor division
         self.assertEqual(tokens_out, self.token_contract.balanceOf(ALICE_ADDRESS))
         self.assertEqual(TOKEN_AMOUNT_STARTING - tokens_out, self.token_contract.balanceOf(self.exchange_contract.address))
         self.assertEqual(TOKEN_AMOUNT_STARTING - tokens_out, self.exchange_contract.tokenPool())

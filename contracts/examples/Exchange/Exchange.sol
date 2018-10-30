@@ -99,11 +99,10 @@ contract Exchange is LibSubmarineSimple {
      */
     function ethToTokenSwap(bytes32 _submarineId)
         external
-        payable
     {
-        require(msg.value > 0);
+        require(msg.value == 0);
         require(revealedAndUnlocked(_submarineId));
-        ethToToken(msg.sender, msg.value);
+        ethToToken(msg.sender, getSubmarineAmount(_submarineId));
     }
 
     /**
