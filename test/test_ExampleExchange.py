@@ -61,20 +61,20 @@ class TestExampleAuction(unittest.TestCase):
         self.token_contract = deploy_solidity_contract_with_args(
             chain=self.chain,
             solc_config_sources={
-            'examples/Exchange/ERC20Interface.sol': {
+            'examples/exchange/ERC20Interface.sol': {
                 'urls':
-                [os.path.join(contract_dir, 'examples/Exchange/ERC20Interface.sol')]
+                [os.path.join(contract_dir, 'examples/exchange/ERC20Interface.sol')]
             },
-            'examples/Exchange/TestToken.sol': {
+            'examples/exchange/TestToken.sol': {
                 'urls':
-                [os.path.join(contract_dir, 'examples/Exchange/TestToken.sol')]
+                [os.path.join(contract_dir, 'examples/exchange/TestToken.sol')]
                 },
                 'SafeMath.sol': {
                     'urls': [os.path.join(contract_dir, 'SafeMath.sol')]
                 },
             },
             allow_paths=root_repo_dir,
-            contract_file='examples/Exchange/TestToken.sol',
+            contract_file='examples/exchange/TestToken.sol',
             contract_name='TestToken',
             startgas=10**7,
             args=["TestToken", "TTT", 18],
@@ -83,17 +83,17 @@ class TestExampleAuction(unittest.TestCase):
         self.exchange_contract = deploy_solidity_contract_with_args(
             chain=self.chain,
             solc_config_sources={
-                'examples/Exchange/Exchange.sol': {
+                'examples/exchange/Exchange.sol': {
                     'urls':
-                    [os.path.join(contract_dir, 'examples/Exchange/Exchange.sol')]
+                    [os.path.join(contract_dir, 'examples/exchange/Exchange.sol')]
                 },
-                'examples/Exchange/ERC20Interface.sol': {
+                'examples/exchange/ERC20Interface.sol': {
                     'urls':
-                    [os.path.join(contract_dir, 'examples/Exchange/ERC20Interface.sol')]
+                    [os.path.join(contract_dir, 'examples/exchange/ERC20Interface.sol')]
                 },
-                'examples/Exchange/TestToken.sol': {
+                'examples/exchange/TestToken.sol': {
                     'urls':
-                    [os.path.join(contract_dir, 'examples/Exchange/TestToken.sol')]
+                    [os.path.join(contract_dir, 'examples/exchange/TestToken.sol')]
                 },
                 'LibSubmarineSimple.sol': {
                     'urls':
@@ -113,7 +113,7 @@ class TestExampleAuction(unittest.TestCase):
                 }
             },
             allow_paths=root_repo_dir,
-            contract_file='examples/Exchange/Exchange.sol',
+            contract_file='examples/exchange/Exchange.sol',
             contract_name='Exchange',
             startgas=10**7,
             args=[self.token_contract.address],
@@ -141,8 +141,8 @@ class TestExampleAuction(unittest.TestCase):
         self.assertEqual(COMMIT_PERIOD_LENGTH, self.exchange_contract.commitPeriodLength())
         randomSubId = rec_bin("0x4242424242424242424242424242424242424242424242424242424242424242")
         self.assertRaises(
-                t.TransactionFailed, 
-                self.exchange_contract.ethToTokenSwap, 
+                t.TransactionFailed,
+                self.exchange_contract.ethToTokenSwap,
                 randomSubId,
                 value=ALICE_TRADE_AMOUNT,
                 sender=RANDO_ADDRESS_PRIVATE_KEY
