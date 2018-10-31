@@ -1,3 +1,4 @@
+
 import "LibSubmarineSimple.sol";
 
 contract ERC721Auction is IERC721Receiver, LibSubmarineSimple {
@@ -14,7 +15,7 @@ contract ERC721Auction is IERC721Receiver, LibSubmarineSimple {
     require(startBlock <= block.number && block.number <= endRevealBlock);
     
     // record bid
-    bidders[_submarineId] = msg.sender; // record bidder
+    bidders[_submarineId] = msg.sender;
     
     // check if new top bid
     if (getSubmarineAmount(winningSubmarineId) < _value) { 
