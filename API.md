@@ -38,7 +38,7 @@ This returns to you the commitAddress you need to send money to, the submarineId
 
 ### `proveth.py`
 
-The other API you will want to call is the Proveth library. This library expects a very specific format of input to generate a proofBlob which you can later push into the reveal function of a LibSubmarine client. This function can also be called both as a command line program, or as an imported python module:
+The other API you will want to call is the Proveth library. This library provides a proofBlob Merkle-Patricia Proof that is passed to the reveal function of LibSubmarine (see: [proofBlob specification](https://github.com/lorenzb/proveth/blob/master/specification.md)). Provet can be called both as a command line program, or as an imported python module:
 
 ```python
 commit_proof_blob = proveth.generate_proof_blob(
@@ -83,4 +83,19 @@ proveth_expected_block_format_dict['transactions'] = ({
     "r":                  str(hex(commit_tx_object['r'])),
     "s":                  str(hex(commit_tx_object['s']))
 }, )
+```
+
+To do [RLP encoding](https://github.com/ethereum/wiki/wiki/RLP) you'll want to use the python [RLP module](https://pypi.org/project/rlp/). As always, refer to the unit tests for an example of how to generate the `_rlpUnlockTxUnsigned` parameter, but basically, it just involves creating a UnsignedTransaction object and then RLP encoding it:
+
+```python
+unlock_tx_unsigned_object = transactions.UnsignedTransaction(
+    int.from_bytes(0, byteorder="big"),                                                                           # nonce;
+    int.from_bytes((10**6), byteorder="big"),                                                                     # gasprice
+    int.from_bytes(3712394, byteorder="big"),                                                                     # startgas/gasprice
+    bytes.fromhex("999999cf1046e68e36E1aA2E0E07105eDDD1f08E"),                                                    # to addr
+    int.from_bytes(unlock_tx_info[4], byteorder="big"),                                                           # value
+    bytes.fromhex(unlockFunctionSelector + "04ddcbea9797815f80ae754f0b8552f7694fffcd34e8dc98a3013fd3dfb3bb9c"),   # data
+)
+
+unlock_tx_unsigned_rlp = rlp.encode(unlock_tx_unsigned_object, transactions.UnsignedTransaction)
 ```
