@@ -1,22 +1,33 @@
 # LibSubmarine Workflow
 
+Naturally, the user experience for an Ethereum DApp will vary depending on the functionality provided by DApp in question. Regardless, in this document we attempt to explain the common workflow elements that most LibSubmarine clients will share.
+
 ### Order
+
+- `A` User
+- `B` Commit Address (No Private key)
+- `C` Libsubmarine
 
 |Order of Transactions | Order of Generation Client-Side|
 | --- | --- |
 | 1. Commit (`A` --> `B`) | 1. Unlock (`B` --> `C`) |
 | 2. Reveal (`A` --> `C`) | 2. Commit (`A` --> `B`) |
 | 3. Unlock (`B` --> `C`) | 3. Reveal (`A` --> `C`) |
-| 4. Finalize (`A` --> `D`) | 4. Finalize (`A` --> `D`) |
 
+All LibSubmarine conforming clients will have at minimum the 3 transactions above broadcast to the network as a part of their DApp workflow. Many may want keep track of the `commitTxBlockNumber` and the `commitTxIndex` to keep track of commit transaction order and/or add a 4th transaction that waits and queries the `revealedAndUnlocked(submarineId)` function to ensure that business logic is only executed after the full submarine send is done.
 
 ### Generate `TXunlock`
 
-`A` chooses a (e.g. 256-bit) witness `w` uniformly at random and computes
-`commit = Keccak256(addr(A) | addr(C) | $value | d | w | gasPrice | gasLimit)`.
+The very first thing that will happen during a submarine send is that the end-user (e.g. JavaScript code running on the DApp's website, or perhaps a native or mobile application) will first generate a specially formatted "TxUnlock" transaction. This unlock transaction "unlocks" committed funds from the commit address and sends those to your DApp. It also calls the `unlock(submarineId)` function on LibSubmarine/your DApp. We provide the `generate_commit.py` program that generates this TxUnlock transaction, and also informs you of what your associated Commit address will be. This program can be imported as a python module (you can refer to the unit tests to see how they do this) or run on the command line (see `generate_commit.py -h` for help). What this program does is described below:
 
-`commit` also used as `sessionId` in the other
-`A` then generates a transaction `TXunlock` committing to data `d`.
+The end-user `A` chooses a (e.g. 256-bit) witness `w` uniformly at random, and computes
+`commit = Keccak256(addr(End User) | addr(DApp Contract/LibSubmarine) | value | optionalDAppData | w | gasPrice | gasLimit)`.
+
+Where `value` is the amount of Wei committed to in this Submarine Send workflow, `optionalDAppData` is any arbitrary data you would like to embed inside the Submarine Send, and gasPrice and gasLimit are the gas price and limit you will be using in the unlock transaction.
+
+This computed `commit` is then used as the `submarineId` for the LibSubmarine contract.
+
+Next, using this `commit` or `submarineId`, `A` then generates the following transaction `TXunlock` which calls `unlock(submarineId)` on LibSubmarine.
 
 ```javascript
 to: C
@@ -24,17 +35,17 @@ value: $value
 nonce: 0
 data: commit
 gasPrice: $gp
-gasLimit: gl
-r: Keccak256(commit | 0)
-s: Keccak256(commit | 1)
+gasLimit: $gl
+r: Keccak256(commit | 1)
+s: Keccak256(commit | 0)
 v: 27 // This makes TXunlock replayable across chains ¯\_(ツ)_/¯
 ```
 
-Note that `TXunlock` is replay-able across chains because we use the pre-EIP155 `v = 27`. We don't really care because `B` needs to be funded explicitly anyways, greatly reducing the potential for replay attacks.
+Note that `TXunlock` is replay-able across chains because we use the pre-EIP155 `v = 27`. We don't really care because the commit address (let's call this `B`) needs to be funded explicitly anyways, greatly reducing the potential for replay attacks.
 
-`A` then computes `ECRECOVER(Txunlock)` which outputs either `B` or ⊥ (Invalid signature). If the output is ⊥, `A` picks a new `w` and repeats this step. Otherwise, `A` now knows `B`.
+`A` then computes `ECRECOVER(Txunlock)` which outputs either `B` or ⊥ (Invalid signature). If the output is ⊥, `A` picks a new `w` and repeats this step. Otherwise, `A` now knows `B` - the commit address.
 
-Done in [generate_commitment](/generate_commitment/README.md)
+This is all done for you in generate_commitment.py.
 
 ### Commit
 
@@ -61,75 +72,4 @@ Reveal transaction should include a deposit `revealDeposit` which will be refund
 - finalized, return `True`, `unlockAmount`, `d`
 
 -------
-
-# LibSubmarine.sol
-LibSubmarine Registry in `contract/LibSubmarine.sol`.
-
-### Constructor
-```javascript
-constructor(uint256 _revealDeposit, uint256 _challengePeriod)
-```
-- **uint256 revealDeposit** : Minimum deposit require for Reveal(). This is to cover costs for challenge() //Cheat/Fraud Proof.
-
-- **uint256 challengePeriod** : Number of blocks to wait for possible challenge. Sessions would not be finalized in the challenge period.
-
-## Reveal
-Reveal the commit transaction details
-```javascript
-reveal(uint256 _commitBlock, uint256 _commitIndex, address _dappAddress, uint256 _unlockAmount,\
-   bytes _data, bytes32 _witness, uint256 _gasPrice, uint256 _gasLimit)
-```
-- **uint256 _commitBlock**: The block number transaction ()`A` -> `B`) was confirmed in
-- **uint256 _commitIndex**: The index of the transaction within the block (a.k.a *Position*)
-- **address _dappAddress**: The address of the DApp using the libsubmarine registry. The funds will be transferred to this address after finalization
-- **uint256 _unlockAmount**: unlockAmount included in the unlock transaction `TXunlock` (`B` -> `C`)
-- **bytes _data**: DApp specific Data included in the `TXunlock`
-- **bytes32 _witness**: Random bytes (witness) included in `TXunlock`
-- **uint256 _gasPrice**: Gas Price specified for `TXunlock`
-- **uint256 _gasLimit**: gasLimit specified `TXunlock`
-
-
-## Unlock
-Receives the `TXunlock` (`B` -> `C`) and changes the state of the session accordingly
-
-```javascript
-unlock(bytes32 _sessionId)
-```
-- **bytes32 _sessionId**: sessionId which is the commit message: `sessionId = Keccak256(addr(A) | addr(C) | $value | d | w | gasPrice | gasLimit)`
-
-
-## Finalize
-Finalizes the state of the session(sessionId) and releases the funds
-
-```javascript
-finalize(bytes32 _sessionId)
-```
-- **bytes32 _sessionId**: sessionId
-
-#### isFinalizable
-View function to show if the state is finalizable.
-> isFinalizable(bytes32 _sessionId)
-
-Returns:
-```javascript
-(true, unlockAmount, DAppData)
-
-OR
-
-(false, 0, "")
-```
-
-## Challenge
-Anyone can challenge a reveal to prove `A` cheated and the commit transaction has not happened they way it was revealed.
-
-If proven right (`A` has cheated), unLockAmount will be transferred to the user reporting the fraud.
-
-```javascript
-challenge(bytes32 _sessionId, bytes _proofBlob, bytes _unsignedCommitTx)
-```
-- **bytes32 _sessionId**: sessionId
-- **bytes _proofBlob**: //TODO
-- **bytes _unsignedCommitTx**: // TODO
-
-
 
