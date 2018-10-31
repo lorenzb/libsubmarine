@@ -14,8 +14,8 @@ contract ERC721Auction is IERC721Receiver, LibSubmarineSimple {
   uint32 public endCommitBlock;
   uint32 public endRevealBlock;
 
-  mapping (address => uint256) public bids;
-  address public winningBidder;
+  mapping (bytes32 => address) public bidders;
+  bytes32 public winningSubmarineId;
 
   /// @notice This creates the auction.
   function onERC721Received(
@@ -60,7 +60,9 @@ contract ERC721Auction is IERC721Receiver, LibSubmarineSimple {
     require(address(erc721) != 0x0);
     require(startBlock <= block.number && block.number <= endRevealBlock);
 
-    if (MONEY(winningSubmarineId) < _value) {
+
+    bidders[_submarineId] = msg.sender;
+    if (getSubmarineAmount(winningSubmarineId) < _value) {
       winningSubmarineId = _submarineId;
     }
   }
@@ -68,14 +70,14 @@ contract ERC721Auction is IERC721Receiver, LibSubmarineSimple {
   function finalize(bytes32 _submarineId) external {
     require(address(erc721) != 0x0);
     require(endRevealBlock < block.number);
-
     require(revealedAndUnlocked(_submarineId));
+    require(bidders[_submarineId] == msg.sender);
 
-    if (msg.sender == winningBidder) {
+    if (_submarineId == winningSubmarineId) {
       erc721.safeTransferFrom(address(this), msg.sender, erc721TokenId);
-      seller.transfer(MONEY(_submarineId));
+      seller.transfer(getSubmarineAmount(_submarineId));
     } else {
-      msg.sender.transfer(bid);
+      msg.sender.transfer(getSubmarineAmount(_submarineId));
     }
   }
 }
