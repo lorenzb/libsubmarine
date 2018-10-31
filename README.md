@@ -38,37 +38,42 @@ A +-------------------> B
 |                       | (calls unlock)
 |                       v
 +---------------------> C < - - - - - - - - - - - - -+ D
-                         (overload) onSubmarin
+                         (overload) onSubmarineReveal
     TxReveal (2)           (query) revealedAndUnlocked(submarineId)
- (call reveal+MPT)         
+ (call reveal + MPT
+ + RLP-encoded TxUnlock)
                                                         
 ```
 
 ----------
-# Workflow
+# Workflow and API Guide
 
 For a more in-depth discussion of what the workflow / steps from a user's perspective 
-for a Submarine transaction looks like, refer to WORKFLOW.md
+for a Submarine transaction looks like, refer to WORKFLOW.md.
+
+For an in-depth discussion of how to incorporate LibSubmarine into your existing application, as well as some software architecture notes, see API.md.
 
 -----------
 # Contract Unit Tests / Examples / Offchain Components
 
 Install Solc ([Installation guide]( http://solidity.readthedocs.io/en/v0.4.24/installing-solidity.html#binary-packages))
 
-Use pip to install python dependencies (we recommend using a virtualenv with >= python3.6)
+Use pip to install python dependencies (we recommend using a virtualenv with >= python3.6):
 
 ```
 pip3 install -r requirements.txt
 ```
 
-run the tests:
+Run the tests:
 ```
 python3 test/test_whateverComponent.py
 ```
 
------------
+The tests are particularly useful to see as a reference, since they basically model an end-users interaction with LibSubmarine from start to finish.
+
+-------------
 # Disclaimer
-This project is a Work in Progress.
+This project is a Work in Progress. It has not undergone a formal security audit from an independent 3rd party (though we would like to have that done).
 
 For a high level discussion around the research of Submarine Sends and some historical implementations, please refer to the blog post: [To Sink Frontrunners, Send in the Submarines](http://hackingdistributed.com/2017/08/28/submarine-sends/).
 
