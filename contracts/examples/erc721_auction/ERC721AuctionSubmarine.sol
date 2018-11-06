@@ -27,7 +27,7 @@ contract ERC721Auction is IERC721Receiver, LibSubmarineSimple {
     require(address(erc721) == 0x0);
 
     // In solidity 0.5.0, we can just do this:
-    // (startBlock, endBlock) = abi.decode(_data, (uint32, uint32));
+    // (startBlock, endCommitBlock) = abi.decode(_data, (uint32, uint32));
     // For now, here is some janky assembly hack that does the same thing,
     // only less efficiently.
     require(_data.length == 8);
@@ -40,12 +40,12 @@ contract ERC721Auction is IERC721Receiver, LibSubmarineSimple {
     }
 
     startBlock = tempStartBlock;
-    endBlock = tempEndBlock;
+    endCommitBlock = tempEndBlock;
     endRevealBlock = tempEndBlock + 256;
 
     require(block.number < startBlock);
-    require(startBlock < endBlock);
-    require(endBlock < endRevealBlock);
+    require(startBlock < endCommitBlock);
+    require(endCommitBlock < endRevealBlock);
     erc721 = IERC721(msg.sender);
     erc721TokenId = _tokenId;
 

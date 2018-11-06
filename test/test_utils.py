@@ -22,23 +22,6 @@ def rec_bin(x):
             return utils.decode_hex(x)
 
 
-def deploy_solidity_contract(chain, solc_config_sources, allow_paths, contract_file, contract_name, startgas):
-    compiled = compile_standard({
-        'language': 'Solidity',
-        'sources': solc_config_sources,
-        'settings': {'evmVersion': 'byzantium',
-                     'outputSelection': {'*': {'*': ['abi', 'evm.bytecode']}},
-                    },
-    }, allow_paths=allow_paths)
-
-    abi = compiled['contracts'][contract_file][contract_name]['abi']
-    binary = compiled['contracts'][contract_file][contract_name]['evm']['bytecode']['object']
-    address = chain.contract(
-        utils.decode_hex(binary), language='evm', value=0, startgas=startgas, sender=tester.k0)
-    contract = tester.ABIContract(chain, abi, address)
-    return contract
-
-
 def deploy_solidity_contract_with_args(chain, solc_config_sources, allow_paths, contract_file, contract_name, startgas, args=[], contractDeploySender=tester.k0):
     compiled = compile_standard({
         'language': 'Solidity',

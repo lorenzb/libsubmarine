@@ -7,7 +7,7 @@ from ethereum import config, transactions
 from ethereum.tools import tester as t
 from ethereum.utils import checksum_encode, normalize_address, sha3, ecrecover_to_pub
 from ethereum.exceptions import InvalidTransaction
-from test_utils import rec_hex, rec_bin, deploy_solidity_contract
+from test_utils import rec_hex, rec_bin, deploy_solidity_contract_with_args
 
 sys.path.append(
     os.path.join(os.path.dirname(__file__), '..', 'generate_commitment'))
@@ -45,7 +45,7 @@ class TestLibSubmarineSimple(unittest.TestCase):
             os.path.join(root_repo_dir, 'contracts/'))
         os.chdir(root_repo_dir)
 
-        self.verifier_contract = deploy_solidity_contract(
+        self.verifier_contract = deploy_solidity_contract_with_args(
             chain=self.chain,
             solc_config_sources={
                 'LibSubmarineSimpleTestHelper.sol': {
