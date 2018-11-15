@@ -22,8 +22,10 @@ COMMIT_PERIOD_LENGTH = 5
 TOTAL_TOKEN_SUPPLY = 1000*10**18
 TOKEN_AMOUNT_STARTING = 1337000000000000000
 ETH_AMOUNT_STARTING = 5*10**18
+MAGIC_GAS_USAGE_TO_GET_TO_STARTING_STATE = 7004311 * 10**6 # I tried to manually calculate this for the unit tests but I give up I have better things to do with my life
 OURGASLIMIT = 3712394
 OURGASPRICE = 10**6
+CONTRACT_INSTANTIATE_GAS = 10**7
 BASIC_SEND_GAS_LIMIT = 21000
 extraTransactionFees = 100000000000000000
 ACCOUNT_STARTING_BALANCE = 1000000000000000000000000
@@ -42,7 +44,7 @@ CONTRACT_OWNER_PRIVATE_KEY = t.k7
 ALICE_TRADE_AMOUNT = 2200000000000000000
 
 
-log = logging.getLogger('TestExampleAuction')
+log = logging.getLogger('TestExampleExchange')
 LOGFORMAT = "%(levelname)s:%(filename)s:%(lineno)s:%(funcName)s(): %(message)s"
 log.setLevel(logging.getLevelName('INFO'))
 logHandler = logging.StreamHandler(stream=sys.stdout)
@@ -50,7 +52,7 @@ logHandler.setFormatter(logging.Formatter(LOGFORMAT))
 log.addHandler(logHandler)
 
 
-class TestExampleAuction(unittest.TestCase):
+class TestExampleExchange(unittest.TestCase):
     def setUp(self):
         config.config_metropolis['BLOCK_GAS_LIMIT'] = 2**60
         self.chain = t.Chain(env=config.Env(config=config.config_metropolis))
@@ -76,10 +78,11 @@ class TestExampleAuction(unittest.TestCase):
             allow_paths=root_repo_dir,
             contract_file='examples/exchange/TestToken.sol',
             contract_name='TestToken',
-            startgas=10**7,
+            startgas=CONTRACT_INSTANTIATE_GAS,
+            gasprice=OURGASPRICE,
             args=["TestToken", "TTT", 18],
             contractDeploySender=CONTRACT_OWNER_PRIVATE_KEY)
-        self.token_contract.mint(CONTRACT_OWNER_ADDRESS, TOTAL_TOKEN_SUPPLY, sender=CONTRACT_OWNER_PRIVATE_KEY)
+        self.token_contract.mint(CONTRACT_OWNER_ADDRESS, TOTAL_TOKEN_SUPPLY, sender=CONTRACT_OWNER_PRIVATE_KEY, gasprice=OURGASPRICE)
         self.exchange_contract = deploy_solidity_contract_with_args(
             chain=self.chain,
             solc_config_sources={
@@ -115,12 +118,13 @@ class TestExampleAuction(unittest.TestCase):
             allow_paths=root_repo_dir,
             contract_file='examples/exchange/Exchange.sol',
             contract_name='Exchange',
-            startgas=10**7,
+            startgas=CONTRACT_INSTANTIATE_GAS,
+            gasprice=OURGASPRICE,
             args=[self.token_contract.address],
             contractDeploySender=CONTRACT_OWNER_PRIVATE_KEY)
-        self.token_contract.approve(self.exchange_contract.address, TOKEN_AMOUNT_STARTING, sender=CONTRACT_OWNER_PRIVATE_KEY)
-        self.exchange_contract.initializeExchange(TOKEN_AMOUNT_STARTING, value=ETH_AMOUNT_STARTING, sender=CONTRACT_OWNER_PRIVATE_KEY)
-        self.token_contract.transfer(BOB_ADDRESS, BOB_STARTING_TOKEN_AMOUNT, sender=CONTRACT_OWNER_PRIVATE_KEY)
+        self.token_contract.approve(self.exchange_contract.address, TOKEN_AMOUNT_STARTING, sender=CONTRACT_OWNER_PRIVATE_KEY, gasprice=OURGASPRICE)
+        self.exchange_contract.initializeExchange(TOKEN_AMOUNT_STARTING, value=ETH_AMOUNT_STARTING, sender=CONTRACT_OWNER_PRIVATE_KEY, gasprice=OURGASPRICE)
+        self.token_contract.transfer(BOB_ADDRESS, BOB_STARTING_TOKEN_AMOUNT, sender=CONTRACT_OWNER_PRIVATE_KEY, gasprice=OURGASPRICE)
 
 
     def test_InvalidEthTokenSwapNoCommit(self):
@@ -128,9 +132,10 @@ class TestExampleAuction(unittest.TestCase):
         ## STARTING STATE
         ##
         self.chain.mine(1)
+        self.assertEqual(27, self.exchange_contract.vee())
         self.assertEqual(TOTAL_TOKEN_SUPPLY - TOKEN_AMOUNT_STARTING - BOB_STARTING_TOKEN_AMOUNT, self.token_contract.balanceOf(CONTRACT_OWNER_ADDRESS))
         self.assertEqual(TOKEN_AMOUNT_STARTING, self.token_contract.balanceOf(self.exchange_contract.address))
-        self.assertEqual(ACCOUNT_STARTING_BALANCE - ETH_AMOUNT_STARTING, self.chain.head_state.get_balance(rec_hex(CONTRACT_OWNER_ADDRESS)))
+        self.assertEqual(ACCOUNT_STARTING_BALANCE - ETH_AMOUNT_STARTING - MAGIC_GAS_USAGE_TO_GET_TO_STARTING_STATE, self.chain.head_state.get_balance(rec_hex(CONTRACT_OWNER_ADDRESS)))
         self.assertEqual(ETH_AMOUNT_STARTING, self.chain.head_state.get_balance(rec_hex(self.exchange_contract.address)))
         self.assertEqual(BOB_STARTING_TOKEN_AMOUNT, self.token_contract.balanceOf(BOB_ADDRESS))
         self.assertEqual(0, self.token_contract.balanceOf(ALICE_ADDRESS))
@@ -156,7 +161,7 @@ class TestExampleAuction(unittest.TestCase):
         self.chain.mine(1)
         self.assertEqual(TOTAL_TOKEN_SUPPLY - TOKEN_AMOUNT_STARTING - BOB_STARTING_TOKEN_AMOUNT, self.token_contract.balanceOf(CONTRACT_OWNER_ADDRESS))
         self.assertEqual(TOKEN_AMOUNT_STARTING, self.token_contract.balanceOf(self.exchange_contract.address))
-        self.assertEqual(ACCOUNT_STARTING_BALANCE - ETH_AMOUNT_STARTING, self.chain.head_state.get_balance(rec_hex(CONTRACT_OWNER_ADDRESS)))
+        self.assertEqual(ACCOUNT_STARTING_BALANCE - ETH_AMOUNT_STARTING - MAGIC_GAS_USAGE_TO_GET_TO_STARTING_STATE, self.chain.head_state.get_balance(rec_hex(CONTRACT_OWNER_ADDRESS)))
         self.assertEqual(ACCOUNT_STARTING_BALANCE, self.chain.head_state.get_balance(rec_hex(ALICE_ADDRESS)))
         self.assertEqual(ETH_AMOUNT_STARTING, self.chain.head_state.get_balance(rec_hex(self.exchange_contract.address)))
         self.assertEqual(BOB_STARTING_TOKEN_AMOUNT, self.token_contract.balanceOf(BOB_ADDRESS))
@@ -166,6 +171,7 @@ class TestExampleAuction(unittest.TestCase):
         self.assertEqual(ETH_AMOUNT_STARTING * TOKEN_AMOUNT_STARTING, self.exchange_contract.invariant())
         currentInvariant = ETH_AMOUNT_STARTING * TOKEN_AMOUNT_STARTING
         self.assertEqual(COMMIT_PERIOD_LENGTH, self.exchange_contract.commitPeriodLength())
+        self.assertEqual(27, self.exchange_contract.vee())
 
         ##
         ## ALICE BUYS TOKENS WITH ETH

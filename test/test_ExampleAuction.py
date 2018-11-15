@@ -106,6 +106,7 @@ class TestExampleAuction(unittest.TestCase):
             contract_file='examples/erc721_auction/openzeppelin-solidity/contracts/token/ERC721/ERC721Mintable.sol',
             contract_name='ERC721Mintable',
             startgas=10**7,
+            gasprice=OURGASPRICE,
             args=[],
             contractDeploySender=CONTRACT_OWNER_PRIVATE_KEY)
         self.erc721_contract.mint(CONTRACT_OWNER_ADDRESS, TOKEN_ID, sender=CONTRACT_OWNER_PRIVATE_KEY)
@@ -147,6 +148,7 @@ class TestExampleAuction(unittest.TestCase):
             contract_file='examples/erc721_auction/ERC721AuctionSubmarine.sol',
             contract_name='ERC721Auction',
             startgas=10**7,
+            gasprice=OURGASPRICE,
             args=[],
             contractDeploySender=CONTRACT_OWNER_PRIVATE_KEY)
         self.chain.mine(1)

@@ -1,6 +1,6 @@
 pragma solidity ^0.4.24;
 
-import "LibSubmarineSimple.sol";
+import "./LibSubmarineSimple.sol";
 
 contract LibSubmarineSimpleTestHelper is LibSubmarineSimple {
 	function onSubmarineReveal(
@@ -8,6 +8,6 @@ contract LibSubmarineSimpleTestHelper is LibSubmarineSimple {
         bytes _embeddedDAppData,
         uint256 _value
     ) internal {
-
     }
 }
+
