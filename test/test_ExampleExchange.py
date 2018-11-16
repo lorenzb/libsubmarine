@@ -78,7 +78,7 @@ class TestExampleAuction(unittest.TestCase):
             contract_name='TestToken',
             startgas=10**7,
             args=["TestToken", "TTT", 18],
-            contractDeploySender=CONTRACT_OWNER_PRIVATE_KEY)
+            contract_creator=CONTRACT_OWNER_PRIVATE_KEY)
         self.token_contract.mint(CONTRACT_OWNER_ADDRESS, TOTAL_TOKEN_SUPPLY, sender=CONTRACT_OWNER_PRIVATE_KEY)
         self.exchange_contract = deploy_solidity_contract_with_args(
             chain=self.chain,
@@ -117,7 +117,7 @@ class TestExampleAuction(unittest.TestCase):
             contract_name='Exchange',
             startgas=10**7,
             args=[self.token_contract.address],
-            contractDeploySender=CONTRACT_OWNER_PRIVATE_KEY)
+            contract_creator=CONTRACT_OWNER_PRIVATE_KEY)
         self.token_contract.approve(self.exchange_contract.address, TOKEN_AMOUNT_STARTING, sender=CONTRACT_OWNER_PRIVATE_KEY)
         self.exchange_contract.initializeExchange(TOKEN_AMOUNT_STARTING, value=ETH_AMOUNT_STARTING, sender=CONTRACT_OWNER_PRIVATE_KEY)
         self.token_contract.transfer(BOB_ADDRESS, BOB_STARTING_TOKEN_AMOUNT, sender=CONTRACT_OWNER_PRIVATE_KEY)
