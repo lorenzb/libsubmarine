@@ -813,7 +813,8 @@ class TestLibSubmarineSimple(unittest.TestCase):
         ##
         ## BROADCAST UNLOCK (this should cause an exception since someone else donated money to your cause)
         ##
-        self.assertRaises(t.TransactionFailed, self.chain.direct_tx, (unlock_tx_object))
+        with self.assertRaises(t.TransactionFailed):
+            self.chain.direct_tx(unlock_tx_object)
 
         ##
         ## CHECK STATE AFTER UNLOCK
@@ -1047,17 +1048,15 @@ class TestLibSubmarineSimple(unittest.TestCase):
         ##
         ## THE REVEAL SHOULD NOW FAIL
         ##
-        self.assertRaises(
-            t.TransactionFailed,
-            self.verifier_contract.reveal,
-        # self.verifier_contract.reveal(
-            commit_block_number,  # uint32 _commitBlockNumber,
-            _unlockExtraData,  # bytes _commitData,
-            witness,  # bytes32 _witness,
-            unlock_tx_unsigned_rlp,  # bytes _rlpUnlockTxUnsigned,
-            commit_proof_blob,  # bytes _proofBlob
-            sender=ALICE_PRIVATE_KEY
-        )
+        with self.assertRaises(t.TransactionFailed):
+            self.verifier_contract.reveal(
+                commit_block_number,  # uint32 _commitBlockNumber,
+                _unlockExtraData,  # bytes _commitData,
+                witness,  # bytes32 _witness,
+                unlock_tx_unsigned_rlp,  # bytes _rlpUnlockTxUnsigned,
+                commit_proof_blob,  # bytes _proofBlob
+                sender=ALICE_PRIVATE_KEY
+            )
 
 if __name__ == "__main__":
     unittest.main()
