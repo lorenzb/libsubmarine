@@ -140,13 +140,12 @@ class TestExampleAuction(unittest.TestCase):
         currentInvariant = ETH_AMOUNT_STARTING * TOKEN_AMOUNT_STARTING
         self.assertEqual(COMMIT_PERIOD_LENGTH, self.exchange_contract.commitPeriodLength())
         randomSubId = rec_bin("0x4242424242424242424242424242424242424242424242424242424242424242")
-        self.assertRaises(
-                t.TransactionFailed,
-                self.exchange_contract.ethToTokenSwap,
+        with self.assertRaises(t.TransactionFailed):
+            self.exchange_contract.ethToTokenSwap(
                 randomSubId,
                 value=ALICE_TRADE_AMOUNT,
-                sender=RANDO_ADDRESS_PRIVATE_KEY
-        )
+                sender=RANDO_ADDRESS_PRIVATE_KEY,
+            )
 
 
     def test_ExchangeWorkflowBuyTokensWithEth(self):
