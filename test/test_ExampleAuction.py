@@ -18,7 +18,7 @@ import proveth
 
 root_repo_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '../'))
 
-COMMIT_PERIOD_LENGTH = 16
+COMMIT_PERIOD_LENGTH = 20
 REVEAL_PERIOD_LENGTH = 14
 # internet points to you if you can figure out the references in these amounts
 BID_AMOUNT_Alice = 1337000000000000000
@@ -107,7 +107,7 @@ class TestExampleAuction(unittest.TestCase):
             contract_name='ERC721Mintable',
             startgas=10**7,
             args=[],
-            contractDeploySender=CONTRACT_OWNER_PRIVATE_KEY)
+            contract_creator=CONTRACT_OWNER_PRIVATE_KEY)
         self.erc721_contract.mint(CONTRACT_OWNER_ADDRESS, TOKEN_ID, sender=CONTRACT_OWNER_PRIVATE_KEY)
 
         self.auction_contract = deploy_solidity_contract_with_args(
@@ -148,7 +148,7 @@ class TestExampleAuction(unittest.TestCase):
             contract_name='ERC721Auction',
             startgas=10**7,
             args=[],
-            contractDeploySender=CONTRACT_OWNER_PRIVATE_KEY)
+            contract_creator=CONTRACT_OWNER_PRIVATE_KEY)
         self.chain.mine(1)
 
     def test_auctionWorkflow(self):
