@@ -6,7 +6,7 @@ import unittest
 from ethereum import config, transactions
 from ethereum.tools import tester as t
 from ethereum.utils import checksum_encode, normalize_address, sha3
-from test_utils import rec_hex, rec_bin, deploy_solidity_contract_with_args
+from test_utils import rec_hex, rec_bin, deploy_solidity_contract_with_args, proveth_compatible_commit_block
 
 sys.path.append(
     os.path.join(os.path.dirname(__file__), '..', 'generate_commitment'))
@@ -219,44 +219,12 @@ class TestExampleAuction(unittest.TestCase):
         ##
         self.chain.mine(COMMIT_PERIOD_LENGTH)
 
-        commit_block_objectAlice = self.chain.chain.get_block_by_number(commit_block_numberAlice)
-        proveth_expected_block_format_dictAlice = dict()
-        proveth_expected_block_format_dictAlice['parentHash'] = commit_block_objectAlice['prevhash']
-        proveth_expected_block_format_dictAlice['sha3Uncles'] = commit_block_objectAlice['uncles_hash']
-        proveth_expected_block_format_dictAlice['miner'] = commit_block_objectAlice['coinbase']
-        proveth_expected_block_format_dictAlice['stateRoot'] = commit_block_objectAlice['state_root']
-        proveth_expected_block_format_dictAlice['transactionsRoot'] = commit_block_objectAlice['tx_list_root']
-        proveth_expected_block_format_dictAlice['receiptsRoot'] = commit_block_objectAlice['receipts_root']
-        proveth_expected_block_format_dictAlice['logsBloom'] = commit_block_objectAlice['bloom']
-        proveth_expected_block_format_dictAlice['difficulty'] = commit_block_objectAlice['difficulty']
-        proveth_expected_block_format_dictAlice['number'] = commit_block_objectAlice['number']
-        proveth_expected_block_format_dictAlice['gasLimit'] = commit_block_objectAlice['gas_limit']
-        proveth_expected_block_format_dictAlice['gasUsed'] = commit_block_objectAlice['gas_used']
-        proveth_expected_block_format_dictAlice['timestamp'] = commit_block_objectAlice['timestamp']
-        proveth_expected_block_format_dictAlice['extraData'] = commit_block_objectAlice['extra_data']
-        proveth_expected_block_format_dictAlice['mixHash'] = commit_block_objectAlice['mixhash']
-        proveth_expected_block_format_dictAlice['nonce'] = commit_block_objectAlice['nonce']
-        proveth_expected_block_format_dictAlice['hash'] = commit_block_objectAlice.hash
-        proveth_expected_block_format_dictAlice['uncles'] = []
-        proveth_expected_block_format_dictAlice['transactions'] = ({
-            "blockHash":          commit_block_objectAlice.hash,
-            "blockNumber":        str(hex((commit_block_objectAlice['number']))),
-            "from":               checksum_encode(ALICE_ADDRESS),
-            "gas":                str(hex(commit_tx_objectAlice['startgas'])),
-            "gasPrice":           str(hex(commit_tx_objectAlice['gasprice'])),
-            "hash":               rec_hex(commit_tx_objectAlice['hash']),
-            "input":              rec_hex(commit_tx_objectAlice['data']),
-            "nonce":              str(hex(commit_tx_objectAlice['nonce'])),
-            "to":                 checksum_encode(commit_tx_objectAlice['to']),
-            "transactionIndex":   str(hex(0)),
-            "value":              str(hex(commit_tx_objectAlice['value'])),
-            "v":                  str(hex(commit_tx_objectAlice['v'])),
-            "r":                  str(hex(commit_tx_objectAlice['r'])),
-            "s":                  str(hex(commit_tx_objectAlice['s']))
-        }, )
-
+        proveth_commit_blockAlice = proveth_compatible_commit_block(
+            self.chain.chain.get_block_by_number(commit_block_numberAlice),
+            commit_tx_objectAlice,
+        )
         commit_proof_blobAlice = proveth.generate_proof_blob(
-            proveth_expected_block_format_dictAlice, commit_block_indexAlice)
+            proveth_commit_blockAlice, commit_block_indexAlice)
         _unlockExtraData = b''  # In this example we dont have any extra embedded data as part of the unlock TX
 
 
