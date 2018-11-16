@@ -7,7 +7,7 @@ from ethereum import config, transactions
 from ethereum.tools import tester as t
 from ethereum.utils import checksum_encode, normalize_address, sha3, ecrecover_to_pub
 from ethereum.exceptions import InvalidTransaction
-from test_utils import rec_hex, rec_bin, deploy_solidity_contract_with_args
+from test_utils import rec_hex, rec_bin, deploy_solidity_contract_with_args, proveth_compatible_commit_block
 
 sys.path.append(
     os.path.join(os.path.dirname(__file__), '..', 'generate_commitment'))
@@ -235,46 +235,10 @@ class TestLibSubmarineSimple(unittest.TestCase):
         log.info("Block transactions: {}".format(
             str(commit_block_object.as_dict()['transactions'][0].as_dict())))
 
-        proveth_expected_block_format_dict = dict()
-        proveth_expected_block_format_dict['parentHash'] = commit_block_object['prevhash']
-        proveth_expected_block_format_dict['sha3Uncles'] = commit_block_object['uncles_hash']
-        proveth_expected_block_format_dict['miner'] = commit_block_object['coinbase']
-        proveth_expected_block_format_dict['stateRoot'] = commit_block_object['state_root']
-        proveth_expected_block_format_dict['transactionsRoot'] = commit_block_object['tx_list_root']
-        proveth_expected_block_format_dict['receiptsRoot'] = commit_block_object['receipts_root']
-        proveth_expected_block_format_dict['logsBloom'] = commit_block_object['bloom']
-        proveth_expected_block_format_dict['difficulty'] = commit_block_object['difficulty']
-        proveth_expected_block_format_dict['number'] = commit_block_object['number']
-        proveth_expected_block_format_dict['gasLimit'] = commit_block_object['gas_limit']
-        proveth_expected_block_format_dict['gasUsed'] = commit_block_object['gas_used']
-        proveth_expected_block_format_dict['timestamp'] = commit_block_object['timestamp']
-        proveth_expected_block_format_dict['extraData'] = commit_block_object['extra_data']
-        proveth_expected_block_format_dict['mixHash'] = commit_block_object['mixhash']
-        proveth_expected_block_format_dict['nonce'] = commit_block_object['nonce']
-        proveth_expected_block_format_dict['hash'] = commit_block_object.hash
-        proveth_expected_block_format_dict['uncles'] = []
-
-        # remember kids, when in doubt, rec_hex EVERYTHING
-        proveth_expected_block_format_dict['transactions'] = ({
-            "blockHash":          commit_block_object.hash,
-            "blockNumber":        str(hex((commit_block_object['number']))),
-            "from":               checksum_encode(ALICE_ADDRESS),
-            "gas":                str(hex(commit_tx_object['startgas'])),
-            "gasPrice":           str(hex(commit_tx_object['gasprice'])),
-            "hash":               rec_hex(commit_tx_object['hash']),
-            "input":              rec_hex(commit_tx_object['data']),
-            "nonce":              str(hex(commit_tx_object['nonce'])),
-            "to":                 checksum_encode(commit_tx_object['to']),
-            "transactionIndex":   str(hex(0)),
-            "value":              str(hex(commit_tx_object['value'])),
-            "v":                  str(hex(commit_tx_object['v'])),
-            "r":                  str(hex(commit_tx_object['r'])),
-            "s":                  str(hex(commit_tx_object['s']))
-        }, )
-
-        #log.info(proveth_expected_block_format_dict['transactions'])
+        proveth_commit_block = proveth_compatible_commit_block(commit_block_object, commit_tx_object)
         commit_proof_blob = proveth.generate_proof_blob(
-            proveth_expected_block_format_dict, commit_block_index)
+            proveth_commit_block, commit_block_index)
+
         log.info("Proof Blob generate by proveth.py: {}".format(
             rec_hex(commit_proof_blob)))
 
@@ -448,46 +412,9 @@ class TestLibSubmarineSimple(unittest.TestCase):
         log.info("Block transactions: {}".format(
             str(commit_block_object.as_dict()['transactions'][0].as_dict())))
 
-        proveth_expected_block_format_dict = dict()
-        proveth_expected_block_format_dict['parentHash'] = commit_block_object['prevhash']
-        proveth_expected_block_format_dict['sha3Uncles'] = commit_block_object['uncles_hash']
-        proveth_expected_block_format_dict['miner'] = commit_block_object['coinbase']
-        proveth_expected_block_format_dict['stateRoot'] = commit_block_object['state_root']
-        proveth_expected_block_format_dict['transactionsRoot'] = commit_block_object['tx_list_root']
-        proveth_expected_block_format_dict['receiptsRoot'] = commit_block_object['receipts_root']
-        proveth_expected_block_format_dict['logsBloom'] = commit_block_object['bloom']
-        proveth_expected_block_format_dict['difficulty'] = commit_block_object['difficulty']
-        proveth_expected_block_format_dict['number'] = commit_block_object['number']
-        proveth_expected_block_format_dict['gasLimit'] = commit_block_object['gas_limit']
-        proveth_expected_block_format_dict['gasUsed'] = commit_block_object['gas_used']
-        proveth_expected_block_format_dict['timestamp'] = commit_block_object['timestamp']
-        proveth_expected_block_format_dict['extraData'] = commit_block_object['extra_data']
-        proveth_expected_block_format_dict['mixHash'] = commit_block_object['mixhash']
-        proveth_expected_block_format_dict['nonce'] = commit_block_object['nonce']
-        proveth_expected_block_format_dict['hash'] = commit_block_object.hash
-        proveth_expected_block_format_dict['uncles'] = []
-
-        # remember kids, when in doubt, rec_hex EVERYTHING
-        proveth_expected_block_format_dict['transactions'] = ({
-            "blockHash":          commit_block_object.hash,
-            "blockNumber":        str(hex((commit_block_object['number']))),
-            "from":               checksum_encode(ALICE_ADDRESS),
-            "gas":                str(hex(commit_tx_object['startgas'])),
-            "gasPrice":           str(hex(commit_tx_object['gasprice'])),
-            "hash":               rec_hex(commit_tx_object['hash']),
-            "input":              rec_hex(commit_tx_object['data']),
-            "nonce":              str(hex(commit_tx_object['nonce'])),
-            "to":                 checksum_encode(commit_tx_object['to']),
-            "transactionIndex":   str(hex(0)),
-            "value":              str(hex(commit_tx_object['value'])),
-            "v":                  str(hex(commit_tx_object['v'])),
-            "r":                  str(hex(commit_tx_object['r'])),
-            "s":                  str(hex(commit_tx_object['s']))
-        }, )
-
-        #log.info(proveth_expected_block_format_dict['transactions'])
+        proveth_commit_block = proveth_compatible_commit_block(commit_block_object, commit_tx_object)
         commit_proof_blob = proveth.generate_proof_blob(
-            proveth_expected_block_format_dict, commit_block_index)
+            proveth_commit_block, commit_block_index)
         log.info("Proof Blob generate by proveth.py: {}".format(
             rec_hex(commit_proof_blob)))
 
@@ -642,46 +569,9 @@ class TestLibSubmarineSimple(unittest.TestCase):
         log.info("Block transactions: {}".format(
             str(commit_block_object.as_dict()['transactions'][0].as_dict())))
 
-        proveth_expected_block_format_dict = dict()
-        proveth_expected_block_format_dict['parentHash'] = commit_block_object['prevhash']
-        proveth_expected_block_format_dict['sha3Uncles'] = commit_block_object['uncles_hash']
-        proveth_expected_block_format_dict['miner'] = commit_block_object['coinbase']
-        proveth_expected_block_format_dict['stateRoot'] = commit_block_object['state_root']
-        proveth_expected_block_format_dict['transactionsRoot'] = commit_block_object['tx_list_root']
-        proveth_expected_block_format_dict['receiptsRoot'] = commit_block_object['receipts_root']
-        proveth_expected_block_format_dict['logsBloom'] = commit_block_object['bloom']
-        proveth_expected_block_format_dict['difficulty'] = commit_block_object['difficulty']
-        proveth_expected_block_format_dict['number'] = commit_block_object['number']
-        proveth_expected_block_format_dict['gasLimit'] = commit_block_object['gas_limit']
-        proveth_expected_block_format_dict['gasUsed'] = commit_block_object['gas_used']
-        proveth_expected_block_format_dict['timestamp'] = commit_block_object['timestamp']
-        proveth_expected_block_format_dict['extraData'] = commit_block_object['extra_data']
-        proveth_expected_block_format_dict['mixHash'] = commit_block_object['mixhash']
-        proveth_expected_block_format_dict['nonce'] = commit_block_object['nonce']
-        proveth_expected_block_format_dict['hash'] = commit_block_object.hash
-        proveth_expected_block_format_dict['uncles'] = []
-
-        # remember kids, when in doubt, rec_hex EVERYTHING
-        proveth_expected_block_format_dict['transactions'] = ({
-            "blockHash":          commit_block_object.hash,
-            "blockNumber":        str(hex((commit_block_object['number']))),
-            "from":               checksum_encode(ALICE_ADDRESS),
-            "gas":                str(hex(commit_tx_object['startgas'])),
-            "gasPrice":           str(hex(commit_tx_object['gasprice'])),
-            "hash":               rec_hex(commit_tx_object['hash']),
-            "input":              rec_hex(commit_tx_object['data']),
-            "nonce":              str(hex(commit_tx_object['nonce'])),
-            "to":                 checksum_encode(commit_tx_object['to']),
-            "transactionIndex":   str(hex(0)),
-            "value":              str(hex(commit_tx_object['value'])),
-            "v":                  str(hex(commit_tx_object['v'])),
-            "r":                  str(hex(commit_tx_object['r'])),
-            "s":                  str(hex(commit_tx_object['s']))
-        }, )
-
-        #log.info(proveth_expected_block_format_dict['transactions'])
+        proveth_commit_block = proveth_compatible_commit_block(commit_block_object, commit_tx_object)
         commit_proof_blob = proveth.generate_proof_blob(
-            proveth_expected_block_format_dict, commit_block_index)
+            proveth_commit_block, commit_block_index)
         log.info("Proof Blob generate by proveth.py: {}".format(
             rec_hex(commit_proof_blob)))
 
@@ -840,46 +730,9 @@ class TestLibSubmarineSimple(unittest.TestCase):
         log.info("Block transactions: {}".format(
             str(commit_block_object.as_dict()['transactions'][0].as_dict())))
 
-        proveth_expected_block_format_dict = dict()
-        proveth_expected_block_format_dict['parentHash'] = commit_block_object['prevhash']
-        proveth_expected_block_format_dict['sha3Uncles'] = commit_block_object['uncles_hash']
-        proveth_expected_block_format_dict['miner'] = commit_block_object['coinbase']
-        proveth_expected_block_format_dict['stateRoot'] = commit_block_object['state_root']
-        proveth_expected_block_format_dict['transactionsRoot'] = commit_block_object['tx_list_root']
-        proveth_expected_block_format_dict['receiptsRoot'] = commit_block_object['receipts_root']
-        proveth_expected_block_format_dict['logsBloom'] = commit_block_object['bloom']
-        proveth_expected_block_format_dict['difficulty'] = commit_block_object['difficulty']
-        proveth_expected_block_format_dict['number'] = commit_block_object['number']
-        proveth_expected_block_format_dict['gasLimit'] = commit_block_object['gas_limit']
-        proveth_expected_block_format_dict['gasUsed'] = commit_block_object['gas_used']
-        proveth_expected_block_format_dict['timestamp'] = commit_block_object['timestamp']
-        proveth_expected_block_format_dict['extraData'] = commit_block_object['extra_data']
-        proveth_expected_block_format_dict['mixHash'] = commit_block_object['mixhash']
-        proveth_expected_block_format_dict['nonce'] = commit_block_object['nonce']
-        proveth_expected_block_format_dict['hash'] = commit_block_object.hash
-        proveth_expected_block_format_dict['uncles'] = []
-
-        # remember kids, when in doubt, rec_hex EVERYTHING
-        proveth_expected_block_format_dict['transactions'] = ({
-            "blockHash":          commit_block_object.hash,
-            "blockNumber":        str(hex((commit_block_object['number']))),
-            "from":               checksum_encode(ALICE_ADDRESS),
-            "gas":                str(hex(commit_tx_object['startgas'])),
-            "gasPrice":           str(hex(commit_tx_object['gasprice'])),
-            "hash":               rec_hex(commit_tx_object['hash']),
-            "input":              rec_hex(commit_tx_object['data']),
-            "nonce":              str(hex(commit_tx_object['nonce'])),
-            "to":                 checksum_encode(commit_tx_object['to']),
-            "transactionIndex":   str(hex(0)),
-            "value":              str(hex(commit_tx_object['value'])),
-            "v":                  str(hex(commit_tx_object['v'])),
-            "r":                  str(hex(commit_tx_object['r'])),
-            "s":                  str(hex(commit_tx_object['s']))
-        }, )
-
-        #log.info(proveth_expected_block_format_dict['transactions'])
+        proveth_commit_block = proveth_compatible_commit_block(commit_block_object, commit_tx_object)
         commit_proof_blob = proveth.generate_proof_blob(
-            proveth_expected_block_format_dict, commit_block_index)
+            proveth_commit_block, commit_block_index)
         log.info("Proof Blob generate by proveth.py: {}".format(
             rec_hex(commit_proof_blob)))
 
@@ -979,46 +832,9 @@ class TestLibSubmarineSimple(unittest.TestCase):
         log.info("Block transactions: {}".format(
             str(commit_block_object.as_dict()['transactions'][0].as_dict())))
 
-        proveth_expected_block_format_dict = dict()
-        proveth_expected_block_format_dict['parentHash'] = commit_block_object['prevhash']
-        proveth_expected_block_format_dict['sha3Uncles'] = commit_block_object['uncles_hash']
-        proveth_expected_block_format_dict['miner'] = commit_block_object['coinbase']
-        proveth_expected_block_format_dict['stateRoot'] = commit_block_object['state_root']
-        proveth_expected_block_format_dict['transactionsRoot'] = commit_block_object['tx_list_root']
-        proveth_expected_block_format_dict['receiptsRoot'] = commit_block_object['receipts_root']
-        proveth_expected_block_format_dict['logsBloom'] = commit_block_object['bloom']
-        proveth_expected_block_format_dict['difficulty'] = commit_block_object['difficulty']
-        proveth_expected_block_format_dict['number'] = commit_block_object['number']
-        proveth_expected_block_format_dict['gasLimit'] = commit_block_object['gas_limit']
-        proveth_expected_block_format_dict['gasUsed'] = commit_block_object['gas_used']
-        proveth_expected_block_format_dict['timestamp'] = commit_block_object['timestamp']
-        proveth_expected_block_format_dict['extraData'] = commit_block_object['extra_data']
-        proveth_expected_block_format_dict['mixHash'] = commit_block_object['mixhash']
-        proveth_expected_block_format_dict['nonce'] = commit_block_object['nonce']
-        proveth_expected_block_format_dict['hash'] = commit_block_object.hash
-        proveth_expected_block_format_dict['uncles'] = []
-
-        # remember kids, when in doubt, rec_hex EVERYTHING
-        proveth_expected_block_format_dict['transactions'] = ({
-            "blockHash":          commit_block_object.hash,
-            "blockNumber":        str(hex((commit_block_object['number']))),
-            "from":               checksum_encode(ALICE_ADDRESS),
-            "gas":                str(hex(commit_tx_object['startgas'])),
-            "gasPrice":           str(hex(commit_tx_object['gasprice'])),
-            "hash":               rec_hex(commit_tx_object['hash']),
-            "input":              rec_hex(commit_tx_object['data']),
-            "nonce":              str(hex(commit_tx_object['nonce'])),
-            "to":                 checksum_encode(commit_tx_object['to']),
-            "transactionIndex":   str(hex(0)),
-            "value":              str(hex(commit_tx_object['value'])),
-            "v":                  str(hex(commit_tx_object['v'])),
-            "r":                  str(hex(commit_tx_object['r'])),
-            "s":                  str(hex(commit_tx_object['s']))
-        }, )
-
-        #log.info(proveth_expected_block_format_dict['transactions'])
+        proveth_commit_block = proveth_compatible_commit_block(commit_block_object, commit_tx_object)
         commit_proof_blob = proveth.generate_proof_blob(
-            proveth_expected_block_format_dict, commit_block_index)
+            proveth_commit_block, commit_block_index)
         log.info("Proof Blob generate by proveth.py: {}".format(
             rec_hex(commit_proof_blob)))
 
