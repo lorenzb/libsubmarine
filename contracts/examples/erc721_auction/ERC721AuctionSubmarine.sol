@@ -1,8 +1,8 @@
 pragma solidity ^0.4.18;
 
 import "LibSubmarineSimple.sol";
-import "examples/erc721_auction/openzeppelin-solidity/contracts/token/ERC721/IERC721.sol";
-import "examples/erc721_auction/openzeppelin-solidity/contracts/token/ERC721/IERC721Receiver.sol";
+import "../../openzeppelin-solidity/contracts/token/ERC721/IERC721.sol";
+import "../../openzeppelin-solidity/contracts/token/ERC721/IERC721Receiver.sol";
 
 contract ERC721Auction is IERC721Receiver, LibSubmarineSimple {
   IERC721 public erc721;

@@ -62,49 +62,49 @@ class TestExampleAuction(unittest.TestCase):
         self.erc721_contract = deploy_solidity_contract_with_args(
             chain=self.chain,
             solc_config_sources={
-                'examples/erc721_auction/openzeppelin-solidity/contracts/token/ERC721/ERC721Mintable.sol': {
+                'openzeppelin-solidity/contracts/token/ERC721/ERC721Mintable.sol': {
                     'urls':
-                    [os.path.join(contract_dir, 'examples/erc721_auction/openzeppelin-solidity/contracts/token/ERC721/ERC721Mintable.sol')]
+                    [os.path.join(contract_dir, 'openzeppelin-solidity/contracts/token/ERC721/ERC721Mintable.sol')]
                 },
-                'examples/erc721_auction/openzeppelin-solidity/contracts/access/roles/MinterRole.sol': {
+                'openzeppelin-solidity/contracts/access/roles/MinterRole.sol': {
                     'urls':
-                    [os.path.join(contract_dir, 'examples/erc721_auction/openzeppelin-solidity/contracts/access/roles/MinterRole.sol')]
+                    [os.path.join(contract_dir, 'openzeppelin-solidity/contracts/access/roles/MinterRole.sol')]
                 },
-                'examples/erc721_auction/openzeppelin-solidity/contracts/access/Roles.sol': {
+                'openzeppelin-solidity/contracts/access/Roles.sol': {
                     'urls':
-                    [os.path.join(contract_dir, 'examples/erc721_auction/openzeppelin-solidity/contracts/access/Roles.sol')]
+                    [os.path.join(contract_dir, 'openzeppelin-solidity/contracts/access/Roles.sol')]
                 },
-                'examples/erc721_auction/openzeppelin-solidity/contracts/token/ERC721/ERC721.sol': {
+                'openzeppelin-solidity/contracts/token/ERC721/ERC721.sol': {
                     'urls':
-                    [os.path.join(contract_dir, 'examples/erc721_auction/openzeppelin-solidity/contracts/token/ERC721/ERC721.sol')]
+                    [os.path.join(contract_dir, 'openzeppelin-solidity/contracts/token/ERC721/ERC721.sol')]
                 },
-                'examples/erc721_auction/openzeppelin-solidity/contracts/token/ERC721/IERC721.sol': {
+                'openzeppelin-solidity/contracts/token/ERC721/IERC721.sol': {
                     'urls':
-                    [os.path.join(contract_dir, 'examples/erc721_auction/openzeppelin-solidity/contracts/token/ERC721/IERC721.sol')]
+                    [os.path.join(contract_dir, 'openzeppelin-solidity/contracts/token/ERC721/IERC721.sol')]
                 },
-                'examples/erc721_auction/openzeppelin-solidity/contracts/token/ERC721/IERC721Receiver.sol': {
+                'openzeppelin-solidity/contracts/token/ERC721/IERC721Receiver.sol': {
                     'urls':
-                    [os.path.join(contract_dir, 'examples/erc721_auction/openzeppelin-solidity/contracts/token/ERC721/IERC721Receiver.sol')]
+                    [os.path.join(contract_dir, 'openzeppelin-solidity/contracts/token/ERC721/IERC721Receiver.sol')]
                 },
-                'examples/erc721_auction/openzeppelin-solidity/contracts/math/SafeMath.sol': {
+                'openzeppelin-solidity/contracts/math/SafeMath.sol': {
                     'urls':
-                    [os.path.join(contract_dir, 'examples/erc721_auction/openzeppelin-solidity/contracts/math/SafeMath.sol')]
+                    [os.path.join(contract_dir, 'openzeppelin-solidity/contracts/math/SafeMath.sol')]
                 },
-                'examples/erc721_auction/openzeppelin-solidity/contracts/utils/Address.sol': {
+                'openzeppelin-solidity/contracts/utils/Address.sol': {
                     'urls':
-                    [os.path.join(contract_dir, 'examples/erc721_auction/openzeppelin-solidity/contracts/utils/Address.sol')]
+                    [os.path.join(contract_dir, 'openzeppelin-solidity/contracts/utils/Address.sol')]
                 },
-                'examples/erc721_auction/openzeppelin-solidity/contracts/introspection/IERC165.sol': {
+                'openzeppelin-solidity/contracts/introspection/IERC165.sol': {
                     'urls':
-                    [os.path.join(contract_dir, 'examples/erc721_auction/openzeppelin-solidity/contracts/introspection/IERC165.sol')]
+                    [os.path.join(contract_dir, 'openzeppelin-solidity/contracts/introspection/IERC165.sol')]
                 },
-                'examples/erc721_auction/openzeppelin-solidity/contracts/introspection/ERC165.sol': {
+                'openzeppelin-solidity/contracts/introspection/ERC165.sol': {
                     'urls':
-                    [os.path.join(contract_dir, 'examples/erc721_auction/openzeppelin-solidity/contracts/introspection/ERC165.sol')]
+                    [os.path.join(contract_dir, 'openzeppelin-solidity/contracts/introspection/ERC165.sol')]
                 }
             },
             allow_paths=root_repo_dir,
-            contract_file='examples/erc721_auction/openzeppelin-solidity/contracts/token/ERC721/ERC721Mintable.sol',
+            contract_file='openzeppelin-solidity/contracts/token/ERC721/ERC721Mintable.sol',
             contract_name='ERC721Mintable',
             startgas=10**7,
             args=[],
@@ -122,8 +122,8 @@ class TestExampleAuction(unittest.TestCase):
                     'urls':
                     [os.path.join(contract_dir, 'LibSubmarineSimple.sol')]
                 },
-                'SafeMath.sol': {
-                    'urls': [os.path.join(contract_dir, 'SafeMath.sol')]
+                'openzeppelin-solidity/contracts/math/SafeMath.sol': {
+                    'urls': [os.path.join(contract_dir, 'openzeppelin-solidity/contracts/math/SafeMath.sol')]
                 },
                 'proveth/ProvethVerifier.sol': {
                     'urls': [
@@ -134,14 +134,14 @@ class TestExampleAuction(unittest.TestCase):
                 'proveth/RLP.sol': {
                     'urls': [os.path.join(contract_dir, 'proveth/RLP.sol')]
                 },
-                'examples/erc721_auction/openzeppelin-solidity/contracts/token/ERC721/IERC721.sol': {
-                    'urls': [os.path.join(contract_dir, 'examples/erc721_auction/openzeppelin-solidity/contracts/token/ERC721/IERC721.sol')]
+                'openzeppelin-solidity/contracts/token/ERC721/IERC721.sol': {
+                    'urls': [os.path.join(contract_dir, 'openzeppelin-solidity/contracts/token/ERC721/IERC721.sol')]
                 },
-                'examples/erc721_auction/openzeppelin-solidity/contracts/token/ERC721/IERC721Receiver.sol': {
-                    'urls': [os.path.join(contract_dir, 'examples/erc721_auction/openzeppelin-solidity/contracts/token/ERC721/IERC721Receiver.sol')]
+                'openzeppelin-solidity/contracts/token/ERC721/IERC721Receiver.sol': {
+                    'urls': [os.path.join(contract_dir, 'openzeppelin-solidity/contracts/token/ERC721/IERC721Receiver.sol')]
                 },
-                'examples/erc721_auction/openzeppelin-solidity/contracts/introspection/IERC165.sol': {
-                    'urls': [os.path.join(contract_dir, 'examples/erc721_auction/openzeppelin-solidity/contracts/introspection/IERC165.sol')]
+                'openzeppelin-solidity/contracts/introspection/IERC165.sol': {
+                    'urls': [os.path.join(contract_dir, 'openzeppelin-solidity/contracts/introspection/IERC165.sol')]
                 }
             },
             allow_paths=root_repo_dir,

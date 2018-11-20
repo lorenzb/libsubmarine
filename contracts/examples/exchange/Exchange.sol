@@ -1,7 +1,7 @@
 pragma solidity ^0.4.24;
 
 import "../../LibSubmarineSimple.sol";
-import "../../SafeMath.sol";
+import "../../openzeppelin-solidity/contracts/math/SafeMath.sol";
 import "./ERC20Interface.sol";
 
 /**

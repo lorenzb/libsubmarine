@@ -1,7 +1,7 @@
 pragma solidity ^0.4.24;
 
-import "openzeppelin-solidity/contracts/token/ERC721/IERC721.sol";
-import "openzeppelin-solidity/contracts/token/ERC721/IERC721Receiver.sol";
+import "../../openzeppelin-solidity/contracts/token/ERC721/IERC721.sol";
+import "../../openzeppelin-solidity/contracts/token/ERC721/IERC721Receiver.sol";
 
 contract ERC721Auction is IERC721Receiver {
   IERC721 public erc721;
