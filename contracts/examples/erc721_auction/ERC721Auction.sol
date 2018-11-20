@@ -45,6 +45,7 @@ contract ERC721Auction is IERC721Receiver {
     require(startBlock < endBlock);
     erc721 = IERC721(msg.sender);
     erc721TokenId = _tokenId;
+    seller = _from;
 
     return bytes4(keccak256("onERC721Received(address,address,uint256,bytes)"));
   }
