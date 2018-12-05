@@ -1,6 +1,6 @@
 pragma solidity ^0.4.24;
 
-import "../../SafeMath.sol";
+import "../../openzeppelin-solidity/contracts/math/SafeMath.sol";
 import "./ERC20Interface.sol";
 
 contract StandardToken is ERC20Interface {

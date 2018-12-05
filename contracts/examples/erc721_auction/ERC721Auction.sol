@@ -1,7 +1,7 @@
 pragma solidity ^0.4.24;
 
-import "openzeppelin-solidity/contracts/token/ERC721/IERC721.sol";
-import "openzeppelin-solidity/contracts/token/ERC721/IERC721Receiver.sol";
+import "../../openzeppelin-solidity/contracts/token/ERC721/IERC721.sol";
+import "../../openzeppelin-solidity/contracts/token/ERC721/IERC721Receiver.sol";
 
 contract ERC721Auction is IERC721Receiver {
   IERC721 public erc721;
@@ -45,6 +45,7 @@ contract ERC721Auction is IERC721Receiver {
     require(startBlock < endBlock);
     erc721 = IERC721(msg.sender);
     erc721TokenId = _tokenId;
+    seller = _from;
 
     return bytes4(keccak256("onERC721Received(address,address,uint256,bytes)"));
   }

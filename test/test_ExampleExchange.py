@@ -69,8 +69,8 @@ class TestExampleAuction(unittest.TestCase):
                 'urls':
                 [os.path.join(contract_dir, 'examples/exchange/TestToken.sol')]
                 },
-                'SafeMath.sol': {
-                    'urls': [os.path.join(contract_dir, 'SafeMath.sol')]
+                'openzeppelin-solidity/contracts/math/SafeMath.sol': {
+                    'urls': [os.path.join(contract_dir, 'openzeppelin-solidity/contracts/math/SafeMath.sol')]
                 },
             },
             allow_paths=root_repo_dir,
@@ -99,8 +99,8 @@ class TestExampleAuction(unittest.TestCase):
                     'urls':
                     [os.path.join(contract_dir, 'LibSubmarineSimple.sol')]
                 },
-                'SafeMath.sol': {
-                    'urls': [os.path.join(contract_dir, 'SafeMath.sol')]
+                'openzeppelin-solidity/contracts/math/SafeMath.sol': {
+                    'urls': [os.path.join(contract_dir, 'openzeppelin-solidity/contracts/math/SafeMath.sol')]
                 },
                 'proveth/ProvethVerifier.sol': {
                     'urls': [

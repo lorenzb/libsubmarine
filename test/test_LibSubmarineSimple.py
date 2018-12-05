@@ -56,8 +56,8 @@ class TestLibSubmarineSimple(unittest.TestCase):
                     'urls':
                     [os.path.join(contract_dir, 'LibSubmarineSimple.sol')]
                 },
-                'SafeMath.sol': {
-                    'urls': [os.path.join(contract_dir, 'SafeMath.sol')]
+                'openzeppelin-solidity/contracts/math/SafeMath.sol': {
+                    'urls': [os.path.join(contract_dir, 'openzeppelin-solidity/contracts/math/SafeMath.sol')]
                 },
                 'proveth/ProvethVerifier.sol': {
                     'urls': [
