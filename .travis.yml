@@ -9,4 +9,4 @@ before_install:
 script:
   - ls
   - pwd
-  - docker run -v $PWD:/repo lorenzb/proveth bash -c "cp -r /repo /repo2  && cd /repo2/ && python3.6 -m pip install -r requirements.txt && python3.6 test/test_LibSubmarineSimple.py && python3.6 test/test_ExampleAuction.py  && python3.6 test/test_ExampleExchange.py"
+  - docker run -v $PWD:/repo lorenzb/proveth@sha256:ee97834552c1b2657a7a2d1b5d741a729a41077b09efbe695a0e914078104465 bash -c "cp -r /repo /repo2  && cd /repo2/ && python3.6 -m pip install -r requirements.txt && python3.6 test/test_LibSubmarineSimple.py && python3.6 test/test_ExampleAuction.py  && python3.6 test/test_ExampleExchange.py"
