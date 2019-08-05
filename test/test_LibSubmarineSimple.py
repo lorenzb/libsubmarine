@@ -65,8 +65,8 @@ class TestLibSubmarineSimple(unittest.TestCase):
                                      'proveth/ProvethVerifier.sol')
                     ]
                 },
-                'proveth/RLP.sol': {
-                    'urls': [os.path.join(contract_dir, 'proveth/RLP.sol')]
+                'proveth/Solidity-RLP/contracts/RLPReader.sol': {
+                    'urls': [os.path.join(contract_dir, 'proveth/Solidity-RLP/contracts/RLPReader.sol')]
                 }
             },
             allow_paths=root_repo_dir,
