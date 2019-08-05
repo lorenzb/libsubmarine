@@ -1,8 +1,8 @@
-pragma solidity ^0.4.24;
+pragma solidity ^0.5.0;
 
 import "./openzeppelin-solidity/contracts/math/SafeMath.sol";
 import "./proveth/ProvethVerifier.sol";
-import "./proveth/RLP.sol";
+import "./proveth/Solidity-RLP/contracts/RLPReader.sol";
 
 contract LibSubmarineSimple is ProvethVerifier {
 
@@ -86,7 +86,7 @@ contract LibSubmarineSimple is ProvethVerifier {
         address _user,
         address _libsubmarine,
         uint256 _commitValue,
-        bytes _embeddedDAppData,
+        bytes memory _embeddedDAppData,
         bytes32 _witness,
         uint256 _gasPrice,
         uint256 _gasLimit
@@ -178,7 +178,7 @@ contract LibSubmarineSimple is ProvethVerifier {
      */
     function onSubmarineReveal(
         bytes32 _submarineId,
-        bytes _embeddedDAppData,
+        bytes memory _embeddedDAppData,
         uint256 _value
     ) internal;
 
@@ -197,10 +197,10 @@ contract LibSubmarineSimple is ProvethVerifier {
      */
     function reveal(
         uint32 _commitTxBlockNumber,
-        bytes _embeddedDAppData,
+        bytes memory _embeddedDAppData,
         bytes32 _witness,
-        bytes _rlpUnlockTxUnsigned,
-        bytes _proofBlob
+        bytes memory _rlpUnlockTxUnsigned,
+        bytes memory _proofBlob
     ) public {
         bytes32 commitBlockHash = blockhash(_commitTxBlockNumber);
         require(
@@ -263,8 +263,8 @@ contract LibSubmarineSimple is ProvethVerifier {
         address submarine = ecrecover(
             unsignedUnlockTxHash,
             vee,
-            keccak256(abi.encodePacked(submarineId, byte(1))),
-            keccak256(abi.encodePacked(submarineId, byte(0)))
+            keccak256(abi.encodePacked(submarineId, byte(uint8(1)))),
+            keccak256(abi.encodePacked(submarineId, byte(uint8(0))))
         );
 
         require(provenCommitTx.to == submarine);
