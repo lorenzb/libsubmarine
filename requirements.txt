@@ -19,7 +19,7 @@ pycparser==2.18
 pycryptodome==3.6.4
 pyethash==0.1.27
 pysha3==1.0.2
-PyYAML==3.13
+PyYAML==5.4
 repoze.lru==0.7
 requests==2.19.1
 rlp==1.0.1
